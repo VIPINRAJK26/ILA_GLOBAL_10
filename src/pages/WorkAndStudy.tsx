@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { BriefcaseIcon, BotIcon } from '../components/common/Icons';
 import { WorkAndStudySpotlight } from '../components/home/WorkAndStudySpotlight';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const WorkAndStudy: React.FC = () => {
@@ -43,6 +44,11 @@ const WorkAndStudy: React.FC = () => {
         {/* Embedded Interactive Country Spotlight */}
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none">
           <WorkAndStudySpotlight />
+        </div>
+
+        {/* Dedicated Work & Study Student Enquiry Form */}
+        <div id="work-study-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="work-and-study" />
         </div>
       </div>
     </div>

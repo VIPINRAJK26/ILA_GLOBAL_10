@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { GlobeIcon, CheckCircleIcon, BotIcon } from '../components/common/Icons';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const StudyAbroad: React.FC = () => {
@@ -79,6 +80,11 @@ const StudyAbroad: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Dedicated Study Abroad Admissions & Scholarship Enquiry Form */}
+        <div id="study-abroad-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="study-abroad" />
         </div>
       </div>
     </div>

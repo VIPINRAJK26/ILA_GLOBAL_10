@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { AwardIcon } from '../components/common/Icons';
 import { RewardsSection } from '../components/home/RewardsSection';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const Rewards: React.FC = () => {
@@ -36,6 +37,11 @@ const Rewards: React.FC = () => {
         {/* Embedded Interactive Rewards Section */}
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none">
           <RewardsSection />
+        </div>
+
+        {/* Dedicated Rewards & Milestone Grant Claim Form */}
+        <div id="rewards-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="rewards" />
         </div>
       </div>
     </div>

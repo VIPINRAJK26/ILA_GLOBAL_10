@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { LaptopIcon, SparklesIcon } from '../components/common/Icons';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const Products: React.FC = () => {
@@ -93,6 +94,11 @@ const Products: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Dedicated Products & Digital Suite Demo Enquiry Form */}
+        <div id="products-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="products" />
         </div>
       </div>
     </div>

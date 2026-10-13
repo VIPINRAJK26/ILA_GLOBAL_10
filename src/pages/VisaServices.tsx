@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { ShieldCheckIcon, BotIcon, ArrowRightIcon, SparklesIcon } from '../components/common/Icons';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const VisaServices: React.FC = () => {
@@ -109,6 +110,11 @@ const VisaServices: React.FC = () => {
           >
             Start Free AI Visa Assessment →
           </Link>
+        </div>
+
+        {/* Dedicated Visa Enquiry Section */}
+        <div id="visa-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="visa" />
         </div>
       </div>
     </div>

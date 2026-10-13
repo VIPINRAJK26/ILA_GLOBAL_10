@@ -7,6 +7,7 @@ import { IlasWithYouSection } from '../components/home/IlasWithYouSection';
 import { RewardsSection } from '../components/home/RewardsSection';
 import { QuickEligibilityChecker } from '../components/home/QuickEligibilityChecker';
 import { TestimonialsAndTrust } from '../components/home/TestimonialsAndTrust';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { CTASection } from '../components/home/CTASection';
 
 const Home: React.FC = () => {
@@ -56,7 +57,18 @@ const Home: React.FC = () => {
       {/* 8. Trust Metrics & Student Success Stories */}
       <TestimonialsAndTrust />
 
-      {/* 9. Final High-Impact CTA */}
+      {/* 9. Dedicated Fast Consultation & Assessment Enquiry Form */}
+      <section id="fast-enquiry" className="py-12 sm:py-16 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <PageEnquiryForm 
+            pageType="general" 
+            title="Book a Free 1-on-1 Global Career Consultation"
+            subtitle="Connect with certified study abroad, work permit, and language advisors. Get customized admission roadmaps and consular timelines."
+          />
+        </div>
+      </section>
+
+      {/* 10. Final High-Impact CTA */}
       <CTASection
         onLaunchCoach={() => scrollToSection('intelli-coach')}
         onExploreServices={() => scrollToSection('services-overview')}

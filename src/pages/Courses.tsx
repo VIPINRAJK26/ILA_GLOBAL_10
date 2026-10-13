@@ -7,6 +7,7 @@ import {
   type LanguageLevel 
 } from '../data/coursesData';
 import { CourseEnrollmentModal } from '../components/courses/CourseEnrollmentModal';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { 
   SparklesIcon, 
   BookOpenIcon, 
@@ -238,6 +239,11 @@ export const Courses: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Dedicated Language Training & Batch Enquiry Form */}
+        <div id="courses-enquiry" className="pt-8">
+          <PageEnquiryForm pageType="courses" />
         </div>
       </div>
 

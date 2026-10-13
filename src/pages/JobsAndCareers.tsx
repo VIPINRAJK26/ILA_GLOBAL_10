@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { BriefcaseIcon, BotIcon, AwardIcon } from '../components/common/Icons';
+import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { ROUTES } from '../routes/paths';
 
 const JobsAndCareers: React.FC = () => {
@@ -75,6 +76,11 @@ const JobsAndCareers: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Dedicated Jobs & Career Sponsorship Enquiry Form */}
+        <div id="jobs-enquiry" className="pt-4">
+          <PageEnquiryForm pageType="jobs-and-careers" />
         </div>
       </div>
     </div>
