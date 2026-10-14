@@ -2,6 +2,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+::-webkit-scrollbar{
+  display: none;
+}
+
 @layer base {
   :root {
     --bg-primary: #ffffff;

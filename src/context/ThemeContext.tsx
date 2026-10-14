@@ -11,17 +11,17 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'ila_theme';
+const THEME_STORAGE_KEY = 'ila_theme_mode';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // 1. Check saved localStorage
+    // 1. Check saved user preference in localStorage
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     if (saved === 'dark' || saved === 'light') {
       return saved;
     }
-    // 2. Default to dark for high-tech premium aesthetics, or check system
-    return 'dark';
+    // 2. Default to light theme
+    return 'light';
   });
 
   useEffect(() => {

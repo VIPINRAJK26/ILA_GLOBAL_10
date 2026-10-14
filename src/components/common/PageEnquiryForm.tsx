@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  savePendingForm, 
+  getPendingForm, 
+  clearPendingForm 
+} from '../../utils/pendingFormStorage';
 import { 
   ShieldCheckIcon, 
   BriefcaseIcon, 
@@ -89,12 +94,13 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
   subtitle,
   className = ""
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const [isRestored, setIsRestored] = useState(false);
 
   const [formData, setFormData] = useState<FormState>({
     fullName: user?.name || '',
     email: user?.email || '',
-    phone: '',
+    phone: user?.phone || user?.phone_number || '',
     countryCode: '+91',
     preferredContact: 'WhatsApp',
     
@@ -140,6 +146,29 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     message: ''
   });
 
+  // Restore pending form on mount or when user authenticates
+  useEffect(() => {
+    const pending = getPendingForm<FormState>(`enquiry_${pageType}`);
+    if (pending?.data) {
+      setFormData(prev => ({
+        ...prev,
+        ...pending.data,
+        fullName: user?.name || pending.data.fullName,
+        email: user?.email || pending.data.email,
+        phone: user?.phone || user?.phone_number || pending.data.phone,
+      }));
+      setIsRestored(true);
+      clearPendingForm(`enquiry_${pageType}`);
+    } else if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.name || prev.fullName,
+        email: user.email || prev.email,
+        phone: user.phone || user.phone_number || prev.phone,
+      }));
+    }
+  }, [pageType, user]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
@@ -174,6 +203,17 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     e.preventDefault();
     if (!validate()) return;
 
+    if (!isAuthenticated || !user) {
+      // Save form data in local storage and redirect to login
+      savePendingForm(`enquiry_${pageType}`, formData);
+      openAuthModal(
+        'student',
+        'login',
+        'Please sign in to submit your enquiry. Your form details have been saved.'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Simulate reliable API submission with contextual ticket generation
@@ -182,6 +222,7 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
       const randomNum = Math.floor(100000 + Math.random() * 900000);
       const generatedTicket = `ILA-${prefix}-${randomNum}`;
       
+      clearPendingForm(`enquiry_${pageType}`);
       setTicketId(generatedTicket);
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -341,6 +382,23 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
         ) : (
           /* Main Interactive Form */
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Restored from local storage indicator */}
+            {isRestored && (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Welcome back! Your previously entered enquiry details have been restored. You can now submit your request.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRestored(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs ml-2 cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {/* 1. Core Contact Information Grid */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -412,11 +470,11 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
                       onChange={handleChange}
                       className="w-24 px-2 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
+                      <option value="+91">🇮🇳 +91</option>
                       <option value="+49">🇩🇪 +49</option>
                       <option value="+1">🇺🇸 +1</option>
                       <option value="+44">🇬🇧 +44</option>
                       <option value="+61">🇦🇺 +61</option>
-                      <option value="+91">🇮🇳 +91</option>
                       <option value="+353">🇮🇪 +353</option>
                       <option value="+33">🇫🇷 +33</option>
                       <option value="+34">🇪🇸 +34</option>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, Link, useLocation } from 'react-router';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router';
 import { 
   GlobeIcon, 
   BotIcon, 
   MenuIcon, 
   XIcon, 
   SparklesIcon, 
-  ShieldCheckIcon, 
-  BriefcaseIcon, 
+  ShieldCheckIcon,
+  BriefcaseIcon,
   GraduationCapIcon, 
   AwardIcon, 
   LaptopIcon,
@@ -15,14 +15,11 @@ import {
   ChevronDownIcon,
   UserIcon,
   LogOutIcon,
-  KeyIcon,
   BookOpenIcon
 } from '../components/common/Icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { CoursesMegaMenu } from '../components/courses/CoursesMegaMenu';
-import { CourseEnrollmentModal } from '../components/courses/CourseEnrollmentModal';
-import { type Course } from '../data/coursesData';
 import { ROUTES } from '../routes/paths';
 
 export const Navbar: React.FC = () => {
@@ -30,16 +27,27 @@ export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
-  
-  // Enrollment modal state
-  const [selectedCourseToEnroll, setSelectedCourseToEnroll] = useState<Course | null>(null);
-  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const coursesMenuRef = useRef<HTMLDivElement>(null);
+  const coursesHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { user, isAuthenticated, openAuthModal, logout } = useAuth();
+
+  const handleCoursesMouseEnter = () => {
+    if (coursesHoverTimeoutRef.current) {
+      clearTimeout(coursesHoverTimeoutRef.current);
+    }
+    setCoursesDropdownOpen(true);
+  };
+
+  const handleCoursesMouseLeave = () => {
+    coursesHoverTimeoutRef.current = setTimeout(() => {
+      setCoursesDropdownOpen(false);
+    }, 180);
+  };
 
   // Scroll elevation shadow
   useEffect(() => {
@@ -73,6 +81,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: 'Home', path: ROUTES.HOME, icon: GlobeIcon },
+    { name: 'All Courses', path: ROUTES.COURSES, icon: BookOpenIcon },
     { name: 'Visa Services', path: ROUTES.VISA_SERVICES, icon: ShieldCheckIcon },
     { name: 'Work & Study', path: ROUTES.WORK_AND_STUDY, icon: BriefcaseIcon },
     { name: 'Study Abroad', path: ROUTES.STUDY_ABROAD, icon: GraduationCapIcon },
@@ -82,23 +91,11 @@ export const Navbar: React.FC = () => {
   ];
 
   const getRoleLabel = () => {
-    if (!user) return '';
-    switch (user.role) {
-      case 'super_admin': return 'Super Admin';
-      case 'staff': return 'Staff Officer';
-      case 'hr': return 'HR Manager';
-      default: return 'Student';
-    }
+    return 'Student';
   };
 
   const getRoleBadgeColor = () => {
-    if (!user) return '';
-    switch (user.role) {
-      case 'super_admin': return 'bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/30';
-      case 'staff': return 'bg-blue-500/10 text-blue-600 dark:text-blue-300 border-blue-500/30';
-      case 'hr': return 'bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-500/30';
-      default: return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
-    }
+    return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
   };
 
   return (
@@ -150,14 +147,19 @@ export const Navbar: React.FC = () => {
               Home
             </NavLink>
 
-            {/* ALL COURSES DROPDOWN TRIGGER */}
+            {/* ALL COURSES DROPDOWN TRIGGER (HOVER SUPPORT) */}
             <div 
               className="relative" 
               ref={coursesMenuRef}
+              onMouseEnter={handleCoursesMouseEnter}
+              onMouseLeave={handleCoursesMouseLeave}
             >
               <button
                 type="button"
-                onClick={() => setCoursesDropdownOpen(!coursesDropdownOpen)}
+                onClick={() => {
+                  setCoursesDropdownOpen(false);
+                  navigate(ROUTES.COURSES);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-[13px] font-bold transition-all duration-200 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                   coursesDropdownOpen || location.pathname === ROUTES.COURSES
                     ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/80 shadow-sm'
@@ -166,11 +168,7 @@ export const Navbar: React.FC = () => {
                 aria-expanded={coursesDropdownOpen}
                 aria-label="All Language and Industry Courses Dropdown"
               >
-                <BookOpenIcon className="w-3.5 h-3.5 text-indigo-500" />
                 <span>All Courses</span>
-                <span className="px-1.5 py-0.2 text-[9px] rounded-md font-extrabold bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-                  Tracks
-                </span>
                 <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${coursesDropdownOpen ? 'rotate-180 text-indigo-500' : 'text-slate-400'}`} />
               </button>
 
@@ -178,15 +176,15 @@ export const Navbar: React.FC = () => {
               <CoursesMegaMenu
                 isOpen={coursesDropdownOpen}
                 onClose={() => setCoursesDropdownOpen(false)}
-                onSelectCourseToEnroll={(course) => {
-                  setSelectedCourseToEnroll(course);
-                  setIsEnrollModalOpen(true);
+                onCourseClick={(courseId) => {
+                  setCoursesDropdownOpen(false);
+                  navigate(`/courses?course=${courseId}#course-${courseId}`);
                 }}
               />
             </div>
 
             {/* Remaining Nav Links */}
-            {navLinks.slice(1).map((item) => (
+            {navLinks.filter((item) => item.path !== ROUTES.HOME && item.path !== ROUTES.COURSES).map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -215,7 +213,7 @@ export const Navbar: React.FC = () => {
                   type="button"
                   onClick={() => openAuthModal('student', 'login')}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
-                  title="Sign in to your student or staff account"
+                  title="Sign in to your student account"
                 >
                   <UserIcon className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   <span>Sign In</span>
@@ -245,9 +243,9 @@ export const Navbar: React.FC = () => {
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate hidden md:inline">
                     {user?.name}
                   </span>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border ${getRoleBadgeColor()}`}>
+                  {/* <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border ${getRoleBadgeColor()}`}>
                     {getRoleLabel()}
-                  </span>
+                  </span> */}
                   <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </button>
 
@@ -263,66 +261,34 @@ export const Navbar: React.FC = () => {
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">{user?.identifierCode}</div>
                       <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 truncate">{user?.email}</div>
-                      {user?.destination && (
-                        <div className="mt-1.5 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded-lg">
-                          Target: {user.destination}
-                        </div>
-                      )}
-                      {user?.department && (
-                        <div className="mt-1.5 text-[11px] text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-1 rounded-lg">
-                          {user.department}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Role Specific Action */}
+                    {/* Student Actions */}
                     <div className="space-y-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {user?.role === 'student' && (
-                        <>
-                          <Link 
-                            to="/courses" 
-                            onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <span>Browse Enrolled Language Tracks</span>
-                            <BookOpenIcon className="w-3.5 h-3.5 text-indigo-500" />
-                          </Link>
-                          <Link 
-                            to="/#intelli-coach" 
-                            onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <span>Intelli Coach AI Session</span>
-                            <SparklesIcon className="w-3.5 h-3.5 text-yellow-400" />
-                          </Link>
-                          <Link 
-                            to={ROUTES.REWARDS} 
-                            onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <span>My Rewards Balance (1,250 pts)</span>
-                            <AwardIcon className="w-3.5 h-3.5 text-amber-500" />
-                          </Link>
-                        </>
-                      )}
-
-                      {user?.role === 'super_admin' && (
-                        <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[11px]">
-                          🛡️ Super Admin Mode: Full Platform Governance & Audit active.
-                        </div>
-                      )}
-
-                      {user?.role === 'staff' && (
-                        <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[11px]">
-                          📋 Staff Mode: Visa queue review & applicant verification active.
-                        </div>
-                      )}
-
-                      {user?.role === 'hr' && (
-                        <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-[11px]">
-                          👥 HR Mode: Recruitment pipeline & sponsor matchmaking active.
-                        </div>
-                      )}
+                      <Link 
+                        to="/courses" 
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span>Browse Enrolled Language Tracks</span>
+                        <BookOpenIcon className="w-3.5 h-3.5 text-indigo-500" />
+                      </Link>
+                      <Link 
+                        to="/#intelli-coach" 
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span>Intelli Coach AI Session</span>
+                        <SparklesIcon className="w-3.5 h-3.5 text-yellow-400" />
+                      </Link>
+                      <Link 
+                        to={ROUTES.REWARDS} 
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <span>My Rewards Balance (1,250 pts)</span>
+                        <AwardIcon className="w-3.5 h-3.5 text-amber-500" />
+                      </Link>
                     </div>
 
                     <button
@@ -427,17 +393,6 @@ export const Navbar: React.FC = () => {
                   <span>Student Register</span>
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openAuthModal('staff', 'login');
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 flex items-center justify-center gap-1.5"
-              >
-                <KeyIcon className="w-3.5 h-3.5 text-purple-500" />
-                <span>Staff, HR & Super Admin Login (Restricted)</span>
-              </button>
             </div>
           ) : (
             <div className="p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
@@ -517,13 +472,6 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Global Course Enrollment / Purchase Modal */}
-      <CourseEnrollmentModal
-        course={selectedCourseToEnroll}
-        isOpen={isEnrollModalOpen}
-        onClose={() => setIsEnrollModalOpen(false)}
-      />
     </header>
   );
 };

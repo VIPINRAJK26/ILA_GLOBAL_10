@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Course } from '../../data/coursesData';
 import { useAuth } from '../../context/AuthContext';
 import { 
+  savePendingForm, 
+  getPendingForm, 
+  clearPendingForm 
+} from '../../utils/pendingFormStorage';
+import { 
   XIcon, 
   CheckCircleIcon, 
-  CreditCardIcon, 
   CalendarIcon, 
   ClockIcon, 
-  SparklesIcon, 
   AwardIcon, 
   BotIcon, 
-  ArrowRightIcon 
+  ArrowRightIcon,
+  UserIcon,
+  MailIcon,
+  PhoneIcon
 } from '../common/Icons';
 
 interface CourseEnrollmentModalProps {
@@ -24,40 +30,65 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, openAuthModal } = useAuth();
 
   const [selectedBatch, setSelectedBatch] = useState<string>('');
   const [applicantName, setApplicantName] = useState('');
   const [applicantEmail, setApplicantEmail] = useState('');
   const [applicantPhone, setApplicantPhone] = useState('');
-  const [redeemPoints, setRedeemPoints] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'sepa' | 'paypal'>('card');
+  const [learningGoals, setLearningGoals] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [enrollmentId, setEnrollmentId] = useState('');
+  const [applicationId, setApplicationId] = useState('');
 
-  // Auto-fill when course or user changes
-  React.useEffect(() => {
+  // Auto-fill when course or user changes, or restore pending
+  useEffect(() => {
     if (course) {
-      setSelectedBatch(course.batchDates[0] || '');
-      setApplicantName(user?.name || '');
-      setApplicantEmail(user?.email || '');
-      setRedeemPoints(false);
+      const pending = getPendingForm<any>('course_enrollment');
+      if (pending?.data && pending.data.courseId === course.id) {
+        setSelectedBatch(pending.data.selectedBatch || course.batchDates[0] || '');
+        setApplicantName(user?.name || pending.data.applicantName || '');
+        setApplicantEmail(user?.email || pending.data.applicantEmail || '');
+        setApplicantPhone(user?.phone || user?.phone_number || pending.data.applicantPhone || '');
+        setLearningGoals(pending.data.learningGoals || '');
+      } else {
+        setSelectedBatch(course.batchDates[0] || '');
+        setApplicantName(user?.name || '');
+        setApplicantEmail(user?.email || '');
+        setApplicantPhone(user?.phone || user?.phone_number || '');
+        setLearningGoals('');
+      }
       setIsSuccess(false);
     }
   }, [course, user]);
 
   if (!isOpen || !course) return null;
 
-  const pointsDiscount = redeemPoints ? 50 : 0;
-  const finalPrice = Math.max(course.price - pointsDiscount, 0);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated || !user) {
+      savePendingForm('course_enrollment', {
+        courseId: course.id,
+        selectedBatch,
+        applicantName,
+        applicantEmail,
+        applicantPhone,
+        learningGoals,
+      });
+      openAuthModal(
+        'student',
+        'login',
+        `Please sign in to submit your application for ${course.title}. Your details have been saved.`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate payment authorization & seat reservation
+    // Simulate API submission & seat reservation
     await new Promise((resolve) => setTimeout(resolve, 800));
-    setEnrollmentId(`ILA-CRS-${Math.floor(10000 + Math.random() * 90000)}`);
+    clearPendingForm('course_enrollment');
+    setApplicationId(`ILA-APP-${Math.floor(10000 + Math.random() * 90000)}`);
     setIsSubmitting(false);
     setIsSuccess(true);
   };
@@ -77,14 +108,14 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xl">{course.flag}</span>
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                {course.language} • {course.field} Track
+                {course.language} • {course.field}
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                 Level {course.level}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
-              {isSuccess ? 'Enrollment Confirmed!' : `Enroll in ${course.title}`}
+              {isSuccess ? 'Application Received!' : `Apply for ${course.title}`}
             </h2>
           </div>
 
@@ -107,23 +138,23 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
 
             <div className="space-y-2">
               <span className="text-xs font-bold font-mono px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                Enrollment ID: {enrollmentId}
+                Application Reference: {applicationId}
               </span>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                Welcome to the Cohort!
+                Application Successfully Submitted!
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-                Your seat in <strong>{course.title}</strong> has been secured for <strong>{selectedBatch}</strong>. An onboarding kit with Google Calendar invites and textbook links has been emailed to <strong>{applicantEmail}</strong>.
+                Your application for <strong>{course.title}</strong> starting on <strong>{selectedBatch}</strong> has been logged. An academic counselor will contact you via WhatsApp / email at <strong>{applicantEmail}</strong>.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-left space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 dark:text-indigo-300">
                 <BotIcon className="w-4 h-4 text-indigo-500" />
-                <span>Bonus Included: Intelli Coach AI Vocabulary Assistant</span>
+                <span>Preparation Bonus: Intelli Coach AI Vocabulary Assistant</span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                Start practicing your specialized {course.field} vocabulary drills right now before your live class starts.
+                Start practicing specialized {course.field} vocabulary drills right now before your live class orientation.
               </p>
             </div>
 
@@ -131,47 +162,24 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Close & Return
               </button>
               <a
                 href="/#intelli-coach"
                 onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Launch Intelli Coach Vocab Trainer</span>
+                <span>Launch Intelli Coach Vocab Drills</span>
                 <ArrowRightIcon className="w-3.5 h-3.5" />
               </a>
             </div>
           </div>
         ) : (
-          /* FORM VIEW */
+          /* APPLICATION FORM VIEW */
           <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-            {/* Field Vocabulary Highlight Box */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <SparklesIcon className="w-3.5 h-3.5 text-indigo-500" />
-                  Target Industry Vocabulary Highlights:
-                </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                  {course.field}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {course.industryKeywords.map((word, i) => (
-                  <span 
-                    key={i} 
-                    className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-300"
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Course Key Specs */}
+            {/* Quick Specs */}
             <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                 <ClockIcon className="w-4 h-4 mx-auto text-indigo-500 mb-1" />
@@ -193,7 +201,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
             {/* Batch Schedule Selection */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Choose Upcoming Batch Schedule:
+                Preferred Batch / Start Date:
               </label>
               <div className="space-y-1.5">
                 {course.batchDates.map((batch, idx) => (
@@ -227,124 +235,80 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
             {/* Applicant Details */}
             <div className="space-y-3">
               <span className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Student Contact Details:
+                Applicant Information:
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="Full Legal Name"
                     value={applicantName}
                     onChange={(e) => setApplicantName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
-                <div>
+                <div className="relative">
+                  <MailIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     placeholder="Email Address"
                     value={applicantEmail}
                     onChange={(e) => setApplicantEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="relative">
+                <PhoneIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="tel"
-                  placeholder="WhatsApp / Phone Number (for class link)"
+                  required
+                  placeholder="WhatsApp / Phone (with country code)"
                   value={applicantPhone}
                   onChange={(e) => setApplicantPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Learning Goals & Specific Requests:
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Preparing for German Blue Card visa interview, IT team communication, or Goethe B1 exam..."
+                  value={learningGoals}
+                  onChange={(e) => setLearningGoals(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
 
-            {/* ILA Points Scholarship Discount Toggle */}
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AwardIcon className="w-5 h-5 text-amber-500 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Redeem 1,000 ILA Reward Points</div>
-                  <div className="text-[11px] text-amber-700 dark:text-amber-300">Instant €50 Academic Scholarship Credit</div>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={redeemPoints}
-                onChange={(e) => setRedeemPoints(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
-              />
-            </div>
-
-            {/* Payment Method Selector */}
-            <div>
-              <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Select Payment Mode:
-              </span>
-              <div className="grid grid-cols-3 gap-2 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`py-2 px-2.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'card'
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  <CreditCardIcon className="w-3.5 h-3.5" />
-                  <span>Card / Apple Pay</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('sepa')}
-                  className={`py-2 px-2.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'sepa'
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  <span>SEPA / Bank</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('paypal')}
-                  className={`py-2 px-2.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    paymentMethod === 'paypal'
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  <span>PayPal / UPI</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Price Summary & Submit Button */}
+            {/* Submit Action */}
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">€{finalPrice}</span>
-                  <span className="text-xs text-slate-400 line-through">€{course.originalPrice}</span>
-                </div>
+                <span className="text-base font-black text-slate-900 dark:text-white block">
+                  Course Fee: €{course.price}
+                </span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                  {redeemPoints ? 'Includes €50 ILA Scholarship Discount' : 'Official CEFR Examination Prep Included'}
+                  Official CEFR Certification & AI Drills Included
                 </span>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                className="py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  <span>Processing...</span>
+                  <span>Submitting...</span>
                 ) : (
                   <>
-                    <span>Confirm & Pay €{finalPrice}</span>
+                    <span>Submit Application</span>
                     <ArrowRightIcon className="w-3.5 h-3.5" />
                   </>
                 )}

@@ -12,8 +12,19 @@ import NotFound from './pages/NotFound';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ROUTES } from './routes/paths';
 import './App.css';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 /**
  * Main Application Router configuration following React Router best practices:
@@ -23,14 +34,16 @@ import './App.css';
  * - Dedicated 404 NotFound fallback route
  * - ThemeProvider supporting Light & Dark themes
  * - AuthProvider managing Student & Staff roles and authentication
+ * - QueryClientProvider powering TanStack Queries & Mutations
  */
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AuthModal />
-        <BrowserRouter>
-          <Routes>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AuthModal />
+            <Routes>
         {/* Parent Layout Route wrapping all top-level application views */}
         <Route path="/" element={<RootLayout />}>
           {/* Index Route: Home */}
@@ -63,6 +76,7 @@ function App() {
     </BrowserRouter>
     </AuthProvider>
   </ThemeProvider>
+  </QueryClientProvider>
   );
 }
 

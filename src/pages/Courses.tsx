@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router';
 import { 
   COURSES_DATA, 
   type Course, 
@@ -8,6 +9,8 @@ import {
 } from '../data/coursesData';
 import { CourseEnrollmentModal } from '../components/courses/CourseEnrollmentModal';
 import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
+import { getPendingForm } from '../utils/pendingFormStorage';
+import { useAuth } from '../context/AuthContext';
 import { 
   SparklesIcon, 
   BookOpenIcon, 
@@ -18,11 +21,57 @@ import {
 } from '../components/common/Icons';
 
 export const Courses: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCategory | 'All'>('All');
   const [selectedField, setSelectedField] = useState<CourseField | 'All'>('All');
   const [selectedLevel, setSelectedLevel] = useState<LanguageLevel | 'All'>('All');
   const [activeCourseToEnroll, setActiveCourseToEnroll] = useState<Course | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [highlightedCourseId, setHighlightedCourseId] = useState<string | null>(null);
+
+  // Restore pending course enrollment after login redirect
+  useEffect(() => {
+    if (isAuthenticated) {
+      const pending = getPendingForm<any>('course_enrollment');
+      if (pending?.data?.courseId) {
+        const foundCourse = COURSES_DATA.find(c => c.id === pending.data.courseId);
+        if (foundCourse) {
+          setActiveCourseToEnroll(foundCourse);
+          setIsEnrollModalOpen(true);
+        }
+      }
+    }
+  }, [isAuthenticated]);
+
+  // Deep-link scroll and highlight when navigating from dropdown
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const targetCourseId = params.get('course') || (location.hash ? location.hash.replace('#course-', '') : null);
+
+    if (targetCourseId) {
+      const courseExists = COURSES_DATA.some((c) => c.id === targetCourseId);
+      if (courseExists) {
+        // Reset filters so the selected course is displayed
+        setSelectedLanguage('All');
+        setSelectedField('All');
+        setSelectedLevel('All');
+        setHighlightedCourseId(targetCourseId);
+
+        setTimeout(() => {
+          const el = document.getElementById(`course-${targetCourseId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        const timer = setTimeout(() => {
+          setHighlightedCourseId(null);
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [location.search, location.hash]);
 
   const languages: (LanguageCategory | 'All')[] = ['All', 'German', 'Spanish', 'French', 'English'];
   const fields: (CourseField | 'All')[] = [
@@ -157,7 +206,12 @@ export const Courses: React.FC = () => {
           {filteredCourses.map((course) => (
             <div
               key={course.id}
-              className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group"
+              id={`course-${course.id}`}
+              className={`p-6 rounded-3xl bg-white dark:bg-slate-900 border transition-all duration-300 flex flex-col justify-between group ${
+                highlightedCourseId === course.id
+                  ? 'border-indigo-500 dark:border-indigo-400 ring-4 ring-indigo-500/30 dark:ring-indigo-400/30 shadow-2xl scale-[1.02]'
+                  : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-sm hover:shadow-xl'
+              }`}
             >
               <div className="space-y-4">
                 {/* Header Pills */}
@@ -216,7 +270,7 @@ export const Courses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Card Footer & Purchase Action */}
+              {/* Card Footer & Apply Action */}
               <div className="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <div className="flex items-baseline gap-2">
@@ -233,7 +287,7 @@ export const Courses: React.FC = () => {
                   onClick={() => handleEnroll(course)}
                   className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95"
                 >
-                  <span>Apply & Enroll</span>
+                  <span>Apply Now</span>
                   <ArrowRightIcon className="w-3.5 h-3.5" />
                 </button>
               </div>
