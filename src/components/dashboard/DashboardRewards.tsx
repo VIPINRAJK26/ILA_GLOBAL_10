@@ -6,7 +6,6 @@ import {
   AwardIcon,
   SparklesIcon,
   BotIcon,
-  CheckCircleIcon,
   ArrowRightIcon,
 } from '../common/Icons';
 

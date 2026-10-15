@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import { useCourseLanguages, type CourseLanguage } from '../../services/courses';
-import { ArrowRightIcon, ChevronRightIcon, BookOpenIcon, SparklesIcon } from '../common/Icons';
+import { ArrowRightIcon, ChevronRightIcon, BookOpenIcon } from '../common/Icons';
 import { ROUTES } from '../../routes/paths';
 
 interface CoursesMegaMenuProps {

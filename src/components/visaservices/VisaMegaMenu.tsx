@@ -1,11 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import {
-  ShieldCheckIcon,
   ArrowRightIcon,
   ChevronRightIcon,
   BotIcon,
-  ClockIcon,
 } from '../common/Icons';
 import { ROUTES } from '../../routes/paths';
 

@@ -3,11 +3,7 @@ import { Link } from 'react-router';
 import type { EnrolledCourse } from '../../services/student';
 import { ROUTES } from '../../routes/paths';
 import {
-  BookOpenIcon,
-  CheckCircleIcon,
-  SparklesIcon,
   GraduationCapIcon,
-  AwardIcon,
 } from '../common/Icons';
 
 interface DashboardCoursesProps {

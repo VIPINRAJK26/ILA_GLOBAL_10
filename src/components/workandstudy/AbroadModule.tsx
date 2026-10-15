@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   ArrowRightIcon,
   ShieldCheckIcon,
-  CheckCircleIcon,
   ClockIcon,
 } from '../common/Icons';
 

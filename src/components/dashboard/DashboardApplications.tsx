@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import type { ApplicationTrack } from '../../services/student';
 import {
   ShieldCheckIcon,
-  CheckCircleIcon,
-  SparklesIcon,
-  ArrowRightIcon,
 } from '../common/Icons';
 
 interface DashboardApplicationsProps {

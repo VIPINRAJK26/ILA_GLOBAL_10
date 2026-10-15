@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { StudentProfile, StudentDocument, CefrLevel } from '../../services/student';
 import { useAuth } from '../../context/AuthContext';
 import {
-  UserIcon,
   ShieldCheckIcon,
   CheckCircleIcon,
 } from '../common/Icons';

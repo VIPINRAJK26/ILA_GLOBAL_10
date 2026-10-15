@@ -7,7 +7,6 @@ import {
   ShieldCheckIcon,
   AwardIcon,
   BotIcon,
-  GraduationCapIcon,
   CheckCircleIcon,
   ArrowRightIcon,
 } from '../common/Icons';

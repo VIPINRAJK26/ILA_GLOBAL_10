@@ -1,13 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router';
 import {
   BriefcaseIcon,
   GlobeIcon,
   ShieldCheckIcon,
   AwardIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
-  SparklesIcon,
 } from '../components/common/Icons';
 import { IndiaModule } from '../components/workandstudy/IndiaModule';
 import { AbroadModule } from '../components/workandstudy/AbroadModule';
@@ -15,7 +12,6 @@ import { GermanProjectsModule } from '../components/workandstudy/GermanProjectsM
 import { RewardsModule } from '../components/workandstudy/RewardsModule';
 import { PlanCalculator } from '../components/workandstudy/PlanCalculator';
 import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
-import { ROUTES } from '../routes/paths';
 
 export const WorkAndStudy: React.FC = () => {
   const scrollToSection = (id: string) => {

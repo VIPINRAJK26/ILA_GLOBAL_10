@@ -20,7 +20,6 @@ import {
   ShieldCheckIcon,
   AwardIcon,
   UserIcon,
-  GraduationCapIcon,
   SparklesIcon,
   LogOutIcon,
 } from '../components/common/Icons';

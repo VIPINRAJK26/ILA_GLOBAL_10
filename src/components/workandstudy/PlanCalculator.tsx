@@ -8,10 +8,7 @@ import {
 } from './data';
 import {
   BotIcon,
-  SparklesIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
-  AwardIcon,
 } from '../common/Icons';
 
 export const PlanCalculator: React.FC = () => {
