@@ -8,7 +8,9 @@ import JobsAndCareers from './pages/JobsAndCareers';
 import Rewards from './pages/Rewards';
 import Products from './pages/Products';
 import Courses from './pages/Courses';
+import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
@@ -57,8 +59,18 @@ function App() {
           <Route path={ROUTES.REWARDS} element={<Rewards />} />
           <Route path={ROUTES.PRODUCTS} element={<Products />} />
           <Route path={ROUTES.COURSES} element={<Courses />} />
+          <Route
+            path={ROUTES.DASHBOARD}
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Convenient Semantic Aliases & Redirects */}
+          <Route path="student/dashboard" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+          <Route path="student" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
           <Route path="all-courses" element={<Navigate to={ROUTES.COURSES} replace />} />
           <Route path="course" element={<Navigate to={ROUTES.COURSES} replace />} />
           <Route path="languages" element={<Navigate to={ROUTES.COURSES} replace />} />

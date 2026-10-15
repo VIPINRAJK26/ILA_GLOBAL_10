@@ -84,3 +84,14 @@ export function getAuthRedirect(): string | null {
     return null;
   }
 }
+
+/**
+ * Set an explicit auth redirect target
+ */
+export function setAuthRedirect(url: string): void {
+  try {
+    localStorage.setItem(AUTH_REDIRECT_KEY, url);
+  } catch {
+    // Ignore
+  }
+}

@@ -6,6 +6,7 @@ import {
   getPendingForm, 
   clearPendingForm 
 } from '../../utils/pendingFormStorage';
+import { submitCourseEnrollment } from '../../services/courses';
 import { 
   XIcon, 
   CheckCircleIcon, 
@@ -40,6 +41,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [applicationId, setApplicationId] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Auto-fill when course or user changes, or restore pending
   useEffect(() => {
@@ -59,6 +61,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
         setLearningGoals('');
       }
       setIsSuccess(false);
+      setErrorMessage('');
     }
   }, [course, user]);
 
@@ -66,6 +69,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
 
     if (!isAuthenticated || !user) {
       savePendingForm('course_enrollment', {
@@ -85,12 +89,44 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
     }
 
     setIsSubmitting(true);
-    // Simulate API submission & seat reservation
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    clearPendingForm('course_enrollment');
-    setApplicationId(`ILA-APP-${Math.floor(10000 + Math.random() * 90000)}`);
-    setIsSubmitting(false);
-    setIsSuccess(true);
+
+    try {
+      // Trigger the real DRF backend API endpoint: POST /api/enrollments/
+      const result = await submitCourseEnrollment({
+        applicant_name: applicantName.trim() || user.name || 'Student Applicant',
+        applicant_email: applicantEmail.trim() || user.email,
+        applicant_phone: applicantPhone.trim() || user.phone || user.phone_number || '+91 9876543210',
+        selected_batch: selectedBatch || course.batchDates[0] || 'Upcoming Cohort',
+        final_price: course.price.toFixed(2),
+        course: course.id,
+        course_level: course.id,
+        payment_method: 'card',
+        redeem_points: false,
+        learning_goals: learningGoals.trim(),
+      });
+
+      clearPendingForm('course_enrollment');
+      setApplicationId(result.enrollment_id || `ILA-ENR-${result.id}`);
+      setIsSuccess(true);
+    } catch (err: any) {
+      console.error('Course enrollment submission failed:', err);
+      let errMsg = 'Failed to submit application. Please check your network and try again.';
+      if (typeof err === 'string') {
+        errMsg = err;
+      } else if (err?.detail) {
+        errMsg = err.detail;
+      } else if (err?.message) {
+        errMsg = err.message;
+      } else if (typeof err === 'object') {
+        const errorList = Object.entries(err)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+          .join(' | ');
+        if (errorList) errMsg = errorList;
+      }
+      setErrorMessage(errMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,7 +180,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
                 Application Successfully Submitted!
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-                Your application for <strong>{course.title}</strong> starting on <strong>{selectedBatch}</strong> has been logged. An academic counselor will contact you via WhatsApp / email at <strong>{applicantEmail}</strong>.
+                Your application for <strong>{course.title}</strong> starting on <strong>{selectedBatch}</strong> has been logged directly with the admissions team. An academic counselor will contact you via WhatsApp / email at <strong>{applicantEmail}</strong>.
               </p>
             </div>
 
@@ -179,6 +215,14 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
         ) : (
           /* APPLICATION FORM VIEW */
           <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            {/* Error Banner */}
+            {errorMessage && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <span className="font-bold">Error:</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             {/* Quick Specs */}
             <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -305,7 +349,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
                 className="py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  <span>Submitting...</span>
+                  <span>Submitting to Admissions...</span>
                 ) : (
                   <>
                     <span>Submit Application</span>
