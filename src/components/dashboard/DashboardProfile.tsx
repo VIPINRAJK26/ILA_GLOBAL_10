@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { StudentProfile, StudentDocument, CefrLevel } from '../../services/student';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -9,9 +9,16 @@ import {
 interface DashboardProfileProps {
   profile: StudentProfile;
   documents: StudentDocument[];
-  onUpdateProfile: (updated: Partial<StudentProfile>) => void;
-  onUploadDocument: (doc: Omit<StudentDocument, 'id' | 'uploadedAt' | 'status'>) => void;
-  onDeleteDocument: (docId: string) => void;
+  onUpdateProfile: (updated: Partial<StudentProfile>) => void | Promise<any>;
+  onUploadDocument: (doc: {
+    name: string;
+    category: StudentDocument['category'];
+    fileName?: string;
+    fileSize?: string;
+    file?: File | null;
+  }) => void | Promise<any>;
+  onDeleteDocument: (docId: string) => void | Promise<any>;
+  isUpdating?: boolean;
 }
 
 export const DashboardProfile: React.FC<DashboardProfileProps> = ({
@@ -20,6 +27,7 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
   onUpdateProfile,
   onUploadDocument,
   onDeleteDocument,
+  isUpdating = false,
 }) => {
   const { setUser } = useAuth();
 
@@ -36,6 +44,21 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
   const [currentCefrLevel, setCurrentCefrLevel] = useState<CefrLevel>(profile.currentCefrLevel || 'B1');
   const [targetCefrLevel, setTargetCefrLevel] = useState<CefrLevel>(profile.targetCefrLevel || 'C1');
 
+  // React to profile updates from backend fetch
+  useEffect(() => {
+    setFirstName(profile.firstName || '');
+    setLastName(profile.lastName || '');
+    setEmail(profile.email || '');
+    setPhone(profile.phone || '');
+    setPassportNumber(profile.passportNumber || '');
+    setNationality(profile.nationality || 'International Student');
+    setDestination(profile.destination || 'Germany');
+    setTargetProgram(profile.targetProgram || '');
+    setAddress(profile.address || '');
+    if (profile.currentCefrLevel) setCurrentCefrLevel(profile.currentCefrLevel);
+    if (profile.targetCefrLevel) setTargetCefrLevel(profile.targetCefrLevel);
+  }, [profile]);
+
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,8 +67,9 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
   const [newDocName, setNewDocName] = useState('');
   const [newDocCategory, setNewDocCategory] = useState<StudentDocument['category']>('transcript');
   const [newDocFileName, setNewDocFileName] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -65,46 +89,51 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
       targetCefrLevel,
     };
 
-    onUpdateProfile(updates);
+    try {
+      await onUpdateProfile(updates);
 
-    // Sync AuthContext user state so Navbar and avatar update immediately
-    setUser((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        name: fullName,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        destination: destination.trim(),
-        program: targetProgram.trim(),
-      };
-    });
+      // Sync AuthContext user state so Navbar and avatar update immediately
+      setUser((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          name: fullName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          destination: destination.trim(),
+          program: targetProgram.trim(),
+        };
+      });
 
-    setTimeout(() => {
-      setIsSubmitting(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
-    }, 400);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUploadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDocName.trim()) return;
 
-    const fileName = newDocFileName || `${newDocName.replace(/\s+/g, '_')}_Verified.pdf`;
-    const randomSizeMb = (Math.random() * 2 + 0.8).toFixed(1);
+    const fileName = uploadFile?.name || newDocFileName || `${newDocName.replace(/\s+/g, '_')}_Verified.pdf`;
+    const randomSizeMb = uploadFile
+      ? (uploadFile.size / (1024 * 1024)).toFixed(1)
+      : (Math.random() * 2 + 0.8).toFixed(1);
 
     onUploadDocument({
       name: newDocName.trim(),
       category: newDocCategory,
       fileName,
       fileSize: `${randomSizeMb} MB`,
+      file: uploadFile,
     });
 
     setNewDocName('');
     setNewDocFileName('');
+    setUploadFile(null);
     setShowUploadModal(false);
   };
 
@@ -323,10 +352,10 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUpdating}
               className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {isSubmitting || isUpdating ? (
                 <>
                   <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -484,16 +513,18 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  File Attachment (Simulated)
+                  Upload Document File (PDF, DOCX, JPG)
                 </label>
                 <input
                   type="file"
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      setNewDocFileName(e.target.files[0].name);
+                      const file = e.target.files[0];
+                      setUploadFile(file);
+                      setNewDocFileName(file.name);
                       if (!newDocName) {
                         setNewDocName(
-                          e.target.files[0].name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ')
+                          file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ')
                         );
                       }
                     }

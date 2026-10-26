@@ -124,7 +124,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-              {rewards.pointsBalance.toLocaleString()}
+              {rewards?.pointsBalance?.toLocaleString()}
             </span>
             <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
               Pts ({rewards.tier})

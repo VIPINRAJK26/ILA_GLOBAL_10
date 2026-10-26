@@ -157,6 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.user) {
+        if (response.access) {
+          localStorage.setItem('ila_auth_access_token', response.access);
+        }
         setUser(response.user);
         closeAuthModal();
         return { success: true, user: response.user };
@@ -194,6 +197,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.user) {
+        if (response.access) {
+          localStorage.setItem('ila_auth_access_token', response.access);
+        }
         setUser(response.user);
         closeAuthModal();
         return { success: true, user: response.user };
@@ -304,6 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setUser(null);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('ila_auth_access_token');
     }
   };
 

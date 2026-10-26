@@ -8,10 +8,18 @@ export const NotFound: React.FC = () => {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-16 sm:py-24 text-center">
       <div className="max-w-md mx-auto space-y-6">
         <div className="relative inline-block">
+          <div className="w-24 h-24 mx-auto mb-4 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg">
+            <img
+              src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=600&auto=format&fit=crop"
+              alt="Compass and travel map"
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
           <div className="text-8xl sm:text-9xl font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
             404
           </div>
-          <div className="absolute -top-2 -right-4">
+          <div className="absolute top-24 -right-4">
             <SparklesIcon className="w-8 h-8 text-yellow-400 animate-pulse" />
           </div>
         </div>

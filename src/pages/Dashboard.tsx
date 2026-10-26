@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getStudentDashboardData,
-  updateStudentProfileData,
-  toggleActivityItemStatus,
-  addStudentDocumentRecord,
-  deleteStudentDocumentRecord,
-  type StudentDashboardData,
+  useStudentDashboard,
   type StudentProfile,
   type StudentDocument,
 } from '../services/student';
@@ -27,37 +22,44 @@ import {
 type TabKey = 'overview' | 'courses' | 'profile' | 'applications' | 'rewards';
 
 export const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  const [data, setData] = useState<StudentDashboardData>(() =>
-    getStudentDashboardData(user)
-  );
 
-  // Sync when user changes
-  useEffect(() => {
-    setData(getStudentDashboardData(user));
-  }, [user]);
+  // Connect to live DRF backend with resilient background queries & caching
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+    updateProfile,
+    isUpdatingProfile,
+    uploadDocument,
+    deleteDocument,
+    toggleActivity,
+  } = useStudentDashboard();
 
-  const handleUpdateProfile = (updates: Partial<StudentProfile>) => {
-    const next = updateStudentProfileData(updates, user);
-    setData({ ...next });
+  console.log(data,"datasasas")
+
+  const handleUpdateProfile = async (updates: Partial<StudentProfile>) => {
+    await updateProfile(updates);
   };
 
-  const handleToggleActivity = (activityId: string) => {
-    const next = toggleActivityItemStatus(activityId, user);
-    setData({ ...next });
+  const handleToggleActivity = async (activityId: string) => {
+    await toggleActivity(activityId);
   };
 
-  const handleUploadDocument = (
-    doc: Omit<StudentDocument, 'id' | 'uploadedAt' | 'status'>
-  ) => {
-    const next = addStudentDocumentRecord(doc, user);
-    setData({ ...next });
+  const handleUploadDocument = async (doc: {
+    name: string;
+    category: StudentDocument['category'];
+    file?: File | null;
+    fileName?: string;
+  }) => {
+    await uploadDocument(doc);
   };
 
-  const handleDeleteDocument = (docId: string) => {
-    const next = deleteStudentDocumentRecord(docId, user);
-    setData({ ...next });
+  const handleDeleteDocument = async (docId: string) => {
+    await deleteDocument(docId);
   };
 
   const tabs: Array<{
@@ -71,38 +73,105 @@ export const Dashboard: React.FC = () => {
       id: 'courses',
       label: 'My Courses',
       icon: BookOpenIcon,
-      badge: data.enrolledCourses.filter((c) => c.status === 'active').length,
+      badge: data?.enrolledCourses?.filter((c) => c.status === 'active')?.length || 0,
     },
     {
       id: 'profile',
       label: 'Details & Documents',
       icon: UserIcon,
-      badge: `${data.documents.length} docs`,
+      badge: `${data?.documents?.length || 0} docs`,
     },
     {
       id: 'applications',
       label: 'Visa & Applications',
       icon: ShieldCheckIcon,
-      badge: data.applications.length,
+      badge: data?.applications?.length || 0,
     },
     {
       id: 'rewards',
       label: 'Rewards & AI Coach',
       icon: AwardIcon,
-      badge: `${data.rewards.pointsBalance} pts`,
+      badge: `${data?.rewards?.pointsBalance || 0} pts`,
     },
   ];
+
+  // Skeleton view during initial load if no cached data exists
+  if (isLoading && !data) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+          <div className="h-44 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+          </div>
+          <div className="h-96 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
+
+  const { profile, rewards } = data;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Top Portal Banner */}
+        {/* Top Status & Sync Indicator Bar */}
+        <div className="flex items-center justify-between text-xs font-semibold px-2">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isError ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isError ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            </span>
+            <span className="text-slate-600 dark:text-slate-400">
+              {isError ? 'Offline Snapshot Cache' : 'Backend Connected'}
+            </span>
+            {isFetching && (
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono animate-pulse">
+                • Syncing live records...
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            title="Refresh dashboard data from DRF API"
+          >
+            <svg
+              className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-indigo-600' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>{isFetching ? 'Refreshing...' : 'Refresh Data'}</span>
+          </button>
+        </div>
+
+        {/* Top Portal Banner with Campus Backdrop Image */}
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          {/* Subtle Campus Architectural Backdrop Image */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=1600&auto=format&fit=crop"
+              alt="University campus architecture background"
+              className="w-full h-full object-cover object-center opacity-10 dark:opacity-20"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/75" />
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-xl shadow-indigo-600/30">
-                  {data.profile.name.charAt(0)}
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
                 </div>
                 <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center" title="Active Session">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -112,10 +181,10 @@ export const Dashboard: React.FC = () => {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    {data.profile.name}
+                    {profile.name || 'Student Portal'}
                   </h1>
                   <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    {data.profile.identifierCode}
+                    {profile.identifierCode || 'ILA-STD-ACTIVE'}
                   </span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                     Enrolled Student
@@ -123,11 +192,11 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                  <span>Target: <strong>{data.profile.destination} 🇩🇪</strong></span>
+                  <span>Target: <strong>{profile.destination || 'Germany 🇩🇪'}</strong></span>
                   <span>•</span>
-                  <span>Program: <strong className="text-slate-700 dark:text-slate-300">{data.profile.targetProgram}</strong></span>
+                  <span>Program: <strong className="text-slate-700 dark:text-slate-300">{profile.targetProgram || 'Academic & Visa Pathway'}</strong></span>
                   <span>•</span>
-                  <span>Current Level: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">CEFR {data.profile.currentCefrLevel}</strong></span>
+                  <span>Current Level: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">CEFR {profile.currentCefrLevel || 'B1'}</strong></span>
                 </p>
               </div>
             </div>
@@ -136,7 +205,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2.5 pt-2 md:pt-0">
               <div className="px-3.5 py-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5 shadow-sm">
                 <AwardIcon className="w-4 h-4 text-amber-500" />
-                <span>{data.rewards.pointsBalance.toLocaleString()} Pts ({data.rewards.tier})</span>
+                <span>{rewards?.pointsBalance?.toLocaleString()} Pts ({rewards.tier})</span>
               </div>
 
               <button
@@ -206,6 +275,7 @@ export const Dashboard: React.FC = () => {
               onUpdateProfile={handleUpdateProfile}
               onUploadDocument={handleUploadDocument}
               onDeleteDocument={handleDeleteDocument}
+              isUpdating={isUpdatingProfile}
             />
           )}
 

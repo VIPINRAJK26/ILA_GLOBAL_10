@@ -35,7 +35,7 @@ export const DashboardRewards: React.FC<DashboardRewardsProps> = ({ rewards }) =
               <span>ILA Global Student Rewards Club</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black">
-              {rewards.pointsBalance.toLocaleString()} Reward Points
+              {rewards?.pointsBalance?.toLocaleString()} Reward Points
             </h2>
             <p className="text-xs sm:text-sm text-white/90 mt-1 max-w-lg leading-relaxed">
               You are currently on <strong className="text-white underline">{rewards.tier} Tier</strong>. Earn points for on-time class attendance, mock test scores, and visa document completeness.
@@ -44,7 +44,7 @@ export const DashboardRewards: React.FC<DashboardRewardsProps> = ({ rewards }) =
 
           <div className="flex flex-col sm:items-end gap-2 shrink-0">
             <span className="text-xs font-mono text-white/80">
-              Lifetime Earned: {rewards.pointsLifetime.toLocaleString()} pts
+              Lifetime Earned: {rewards?.pointsLifetime?.toLocaleString()} pts
             </span>
             <Link
               to={ROUTES.REWARDS}
@@ -186,7 +186,7 @@ export const DashboardRewards: React.FC<DashboardRewardsProps> = ({ rewards }) =
         </div>
 
         <div className="space-y-3">
-          {rewards.coachHistory.map((item) => (
+          {rewards?.coachHistory?.map((item) => (
             <div
               key={item.id}
               className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"

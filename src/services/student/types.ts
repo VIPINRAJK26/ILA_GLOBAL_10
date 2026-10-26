@@ -39,6 +39,8 @@ export interface EnrolledCourse {
   syllabusCovered: string;
   materialsCount: number;
   status: 'active' | 'completed' | 'upcoming';
+  learningPath?: string;
+  tuitionPaid?: string;
 }
 
 export interface StudentActivityItem {
@@ -61,7 +63,7 @@ export interface ApplicationStep {
 
 export interface ApplicationTrack {
   id: string;
-  type: 'visa' | 'university' | 'job_matching';
+  type: 'visa' | 'university' | 'job_matching' | 'course_enrollment';
   title: string;
   country: string;
   flag: string;
@@ -71,6 +73,8 @@ export interface ApplicationTrack {
   statusLabel: string;
   consularDesk: string;
   officerNotes?: string;
+  learningPath?: string;
+  tuitionPaid?: string;
   steps: ApplicationStep[];
 }
 

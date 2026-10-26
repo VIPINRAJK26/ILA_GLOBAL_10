@@ -19,21 +19,40 @@ import {
   MailIcon,
   PhoneIcon
 } from '../common/Icons';
+import { addStudentCourseEnrollment } from '../../services/student';
+
+const LIVE_TIME_SLOTS = [
+  { id: 'morning', label: 'Morning Slot', hours: '09:00 - 12:00 CET', tag: 'Fast-Track' },
+  { id: 'afternoon', label: 'Afternoon Slot', hours: '14:00 - 17:00 CET', tag: 'Standard' },
+  { id: 'evening', label: 'Evening Slot', hours: '18:00 - 21:00 CET', tag: 'Most Popular' },
+  { id: 'weekend', label: 'Weekend Intensive', hours: 'Sat & Sun (10:00 - 14:00 CET)', tag: 'Weekend' },
+];
 
 interface CourseEnrollmentModalProps {
   course: Course | null;
   isOpen: boolean;
   onClose: () => void;
+  learningPathTitle?: string;
+  learningPathId?: string;
+  finalPrice?: number;
 }
 
 export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
   course,
   isOpen,
-  onClose
+  onClose,
+  learningPathTitle = 'Video + AI Masterclass',
+  learningPathId,
+  finalPrice
 }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
+  const isHumanTutor = learningPathTitle.toLowerCase().includes('human') || 
+                       learningPathTitle.toLowerCase().includes('1-to-1') ||
+                       learningPathId === '1-to-1';
 
-  const [selectedBatch, setSelectedBatch] = useState<string>('');
+
+  const [selectedBatchDate, setSelectedBatchDate] = useState<string>('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('Evening Slot (18:00 - 21:00 CET)');
   const [applicantName, setApplicantName] = useState('');
   const [applicantEmail, setApplicantEmail] = useState('');
   const [applicantPhone, setApplicantPhone] = useState('');
@@ -48,13 +67,15 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
     if (course) {
       const pending = getPendingForm<any>('course_enrollment');
       if (pending?.data && pending.data.courseId === course.id) {
-        setSelectedBatch(pending.data.selectedBatch || course.batchDates[0] || '');
+        setSelectedBatchDate(pending.data.selectedBatchDate || course.batchDates[0] || '');
+        setSelectedTimeSlot(pending.data.selectedTimeSlot || 'Evening Slot (18:00 - 21:00 CET)');
         setApplicantName(user?.name || pending.data.applicantName || '');
         setApplicantEmail(user?.email || pending.data.applicantEmail || '');
         setApplicantPhone(user?.phone || user?.phone_number || pending.data.applicantPhone || '');
         setLearningGoals(pending.data.learningGoals || '');
       } else {
-        setSelectedBatch(course.batchDates[0] || '');
+        setSelectedBatchDate(course.batchDates[0] || '');
+        setSelectedTimeSlot('Evening Slot (18:00 - 21:00 CET)');
         setApplicantName(user?.name || '');
         setApplicantEmail(user?.email || '');
         setApplicantPhone(user?.phone || user?.phone_number || '');
@@ -65,6 +86,10 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
     }
   }, [course, user]);
 
+  const effectiveBatch = isHumanTutor
+    ? `${selectedBatchDate || course?.batchDates[0] || 'Upcoming Cohort'} • ${selectedTimeSlot}`
+    : 'Instant 24/7 Access (Self-Paced Anytime)';
+
   if (!isOpen || !course) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,11 +99,15 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
     if (!isAuthenticated || !user) {
       savePendingForm('course_enrollment', {
         courseId: course.id,
-        selectedBatch,
+        selectedBatch: effectiveBatch,
+        selectedBatchDate,
+        selectedTimeSlot,
         applicantName,
         applicantEmail,
         applicantPhone,
         learningGoals,
+        learningPathTitle,
+        learningPathId,
       });
       openAuthModal(
         'student',
@@ -91,22 +120,39 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      const calculatedPrice = finalPrice !== undefined ? finalPrice : course.price;
+
       // Trigger the real DRF backend API endpoint: POST /api/enrollments/
       const result = await submitCourseEnrollment({
         applicant_name: applicantName.trim() || user.name || 'Student Applicant',
         applicant_email: applicantEmail.trim() || user.email,
         applicant_phone: applicantPhone.trim() || user.phone || user.phone_number || '+91 9876543210',
-        selected_batch: selectedBatch || course.batchDates[0] || 'Upcoming Cohort',
-        final_price: course.price.toFixed(2),
+        selected_batch: effectiveBatch,
+        final_price: calculatedPrice.toFixed(2),
         course: course.id,
         course_level: course.id,
         payment_method: 'card',
         redeem_points: false,
         learning_goals: learningGoals.trim(),
+        learning_path: learningPathTitle,
+        learning_path_id: learningPathId,
       });
 
+
+      const refId = result.enrollment_id || `ILA-ENR-${result.id || Math.floor(100000 + Math.random() * 900000)}`;
+
+      // Record in local student dashboard state
+      addStudentCourseEnrollment(
+        course,
+        learningPathTitle,
+        effectiveBatch,
+        calculatedPrice,
+        refId,
+        user
+      );
+
       clearPendingForm('course_enrollment');
-      setApplicationId(result.enrollment_id || `ILA-ENR-${result.id}`);
+      setApplicationId(refId);
       setIsSuccess(true);
     } catch (err: any) {
       console.error('Course enrollment submission failed:', err);
@@ -141,13 +187,16 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
         {/* Modal Header */}
         <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xl">{course.flag}</span>
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 {course.language} • {course.field}
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                 Level {course.level}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                {learningPathTitle}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
@@ -180,7 +229,7 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
                 Application Successfully Submitted!
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-                Your application for <strong>{course.title}</strong> starting on <strong>{selectedBatch}</strong> has been logged directly with the admissions team. An academic counselor will contact you via WhatsApp / email at <strong>{applicantEmail}</strong>.
+                Your application for <strong>{course.title}</strong> under the <strong>{learningPathTitle}</strong> pathway {isHumanTutor ? <>scheduled for <strong>{effectiveBatch}</strong></> : <>with <strong>Instant 24/7 Anytime Access</strong></>} has been logged directly with the admissions team. An academic counselor will contact you via WhatsApp / email at <strong>{applicantEmail}</strong>.
               </p>
             </div>
 
@@ -227,13 +276,21 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
             <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                 <ClockIcon className="w-4 h-4 mx-auto text-indigo-500 mb-1" />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Duration</span>
-                <span className="font-bold text-slate-900 dark:text-white">{course.duration}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  {isHumanTutor ? 'Duration' : 'Schedule'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {isHumanTutor ? course.duration : '24/7 Anytime'}
+                </span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                 <CalendarIcon className="w-4 h-4 mx-auto text-purple-500 mb-1" />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Hours</span>
-                <span className="font-bold text-slate-900 dark:text-white">{course.hours.split('+')[0]}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  {isHumanTutor ? 'Live Hours' : 'Access Hours'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {isHumanTutor ? course.hours.split('+')[0] : 'Unlimited 24/7'}
+                </span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                 <AwardIcon className="w-4 h-4 mx-auto text-amber-500 mb-1" />
@@ -242,39 +299,122 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
               </div>
             </div>
 
-            {/* Batch Schedule Selection */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Preferred Batch / Start Date:
-              </label>
-              <div className="space-y-1.5">
-                {course.batchDates.map((batch, idx) => (
-                  <label
-                    key={idx}
-                    className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                      selectedBatch === batch
-                        ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="radio"
-                        name="batch"
-                        value={batch}
-                        checked={selectedBatch === batch}
-                        onChange={() => setSelectedBatch(batch)}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>{batch}</span>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
-                      {course.spotsRemaining} spots left
-                    </span>
+            {/* Batch & Timing Selection vs Instant AI Access */}
+            {isHumanTutor ? (
+              <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white">
+                    1. Preferred Live Cohort Batch:
                   </label>
-                ))}
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full">
+                    1:1 Human Tutor
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {course.batchDates.map((batch, idx) => (
+                    <label
+                      key={idx}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                        selectedBatchDate === batch
+                          ? 'bg-amber-100/70 dark:bg-amber-950/70 border-amber-500 text-amber-950 dark:text-amber-100 font-bold shadow-sm'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="batchDate"
+                          value={batch}
+                          checked={selectedBatchDate === batch}
+                          onChange={() => setSelectedBatchDate(batch)}
+                          className="text-amber-600 focus:ring-indigo-500"
+                        />
+                        <span>{batch}</span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                        {course.spotsRemaining} spots left
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* 1:1 Live Timing Slot */}
+                <div className="pt-1">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2">
+                    2. Preferred 1:1 Live Session Time Slot:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {LIVE_TIME_SLOTS.map((slot) => {
+                      const isSlotActive = selectedTimeSlot.includes(slot.label);
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => setSelectedTimeSlot(`${slot.label} (${slot.hours})`)}
+                          className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                            isSlotActive
+                              ? 'bg-amber-100/70 dark:bg-amber-950/70 border-amber-500 text-amber-950 dark:text-amber-100 font-bold shadow-sm'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold">{slot.label}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200/60 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                              {slot.tag}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-normal mt-0.5">
+                            {slot.hours}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Instant 24/7 Access For AI Learners - No Batches or Timing Required */
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-purple-50/70 to-indigo-50/90 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+                      <BotIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                        Instant 24/7 On-Demand Access
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        No batch dates or fixed time schedules required
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    Active 24/7
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Batch schedules and fixed timing are reserved only for human tutors. Under your <strong>{learningPathTitle}</strong> pathway, you can use the AI tutor and interactive curriculum <strong>anytime</strong> at your own convenience — 24 hours a day, 7 days a week, with zero wait time.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Practice Anytime</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Self-Paced Rhythm</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Immediate Activation</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Applicant Details */}
             <div className="space-y-3">
@@ -336,10 +476,10 @@ export const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <span className="text-base font-black text-slate-900 dark:text-white block">
-                  Course Fee: €{course.price}
+                  Course Fee: €{finalPrice !== undefined ? finalPrice : course.price}
                 </span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                  Official CEFR Certification & AI Drills Included
+                  {learningPathTitle} Deliverables Included
                 </span>
               </div>
 

@@ -12,6 +12,8 @@ export interface CourseEnrollmentPayload {
   redeem_points?: boolean;
   points_discount?: string | number;
   learning_goals?: string;
+  learning_path?: string;
+  learning_path_id?: string;
 }
 
 export interface CourseEnrollmentResponse {
@@ -28,9 +30,12 @@ export interface CourseEnrollmentResponse {
   redeem_points?: boolean;
   points_discount?: string;
   final_price: string;
+  learning_path?: string;
+  learning_path_id?: string;
   status?: string;
   created_at?: string;
 }
+
 
 /**
  * Submit Course Enrollment Application to DRF

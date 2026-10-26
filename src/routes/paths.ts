@@ -7,8 +7,10 @@ export const ROUTES = {
   REWARDS: '/rewards',
   PRODUCTS: '/products',
   COURSES: '/courses',
+  ELIGIBILITY: '/eligibility',
   DASHBOARD: '/dashboard',
 } as const;
+
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
