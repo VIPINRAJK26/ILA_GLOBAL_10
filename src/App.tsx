@@ -16,6 +16,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
+import { LogoutModal } from './components/auth/LogoutModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ROUTES } from './routes/paths';
 import './App.css';
@@ -47,6 +48,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <AuthModal />
+            <LogoutModal />
             <Routes>
         {/* Parent Layout Route wrapping all top-level application views */}
         <Route path="/" element={<RootLayout />}>

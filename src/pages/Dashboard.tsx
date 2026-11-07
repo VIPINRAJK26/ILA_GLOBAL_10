@@ -15,14 +15,14 @@ import {
   ShieldCheckIcon,
   AwardIcon,
   UserIcon,
-  SparklesIcon,
+  CompassIcon,
   LogOutIcon,
 } from '../components/common/Icons';
 
 type TabKey = 'overview' | 'courses' | 'profile' | 'applications' | 'rewards';
 
 export const Dashboard: React.FC = () => {
-  const { logout } = useAuth();
+  const { openLogoutModal } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   // Connect to live DRF backend with resilient background queries & caching
@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
     icon: React.ComponentType<{ className?: string }>;
     badge?: string | number;
   }> = [
-    { id: 'overview', label: 'Overview & Activity', icon: SparklesIcon },
+    { id: 'overview', label: 'Overview & Activity', icon: CompassIcon },
     {
       id: 'courses',
       label: 'My Courses',
@@ -210,7 +210,7 @@ export const Dashboard: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => logout()}
+                onClick={() => openLogoutModal()}
                 className="px-3.5 py-2 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <LogOutIcon className="w-3.5 h-3.5" />

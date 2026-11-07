@@ -40,6 +40,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: Run Automated Tests
+        run: npm test
+
   build:
     name: Type Check & Build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest

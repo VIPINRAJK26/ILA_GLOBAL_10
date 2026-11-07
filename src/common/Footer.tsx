@@ -6,7 +6,6 @@ import {
   HeartHandshakeIcon, 
   ShieldCheckIcon, 
   HeadphonesIcon,
-  SparklesIcon,
   CheckCircleIcon,
   SendIcon
 } from '../components/common/Icons';
@@ -38,7 +37,6 @@ export const Footer: React.FC = () => {
         <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-sm dark:shadow-none flex flex-col lg:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center lg:text-left">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-500/20">
-              <SparklesIcon className="w-3.5 h-3.5" />
               <span>Intake & Visa Policy Updates</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">

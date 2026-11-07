@@ -10,7 +10,6 @@ import {
   EyeIcon,
   EyeOffIcon,
   CheckCircleIcon,
-  SparklesIcon,
   ArrowRightIcon,
 } from "../common/Icons";
 
@@ -171,7 +170,6 @@ export const AuthModal: React.FC = () => {
         {/* Informational Context Notice (e.g. from saved form submission) */}
         {authModalNotice && (
           <div className="mx-6 mt-4 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-indigo-500 shrink-0" />
             <span>{authModalNotice}</span>
           </div>
         )}
@@ -395,10 +393,7 @@ export const AuthModal: React.FC = () => {
                 {isLoading ? (
                   <span>Registering Account...</span>
                 ) : (
-                  <>
-                    <SparklesIcon className="w-4 h-4 text-yellow-300" />
-                    <span>Create Free Student Account</span>
-                  </>
+                  <span>Create Free Student Account</span>
                 )}
               </button>
             </form>
