@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload Build Artifact
         if: matrix.node-version == '20.x' && github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-build-dist
           path: dist/
