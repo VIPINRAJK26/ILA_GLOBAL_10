@@ -50,7 +50,7 @@ export const Navbar: React.FC = () => {
   const workStudyHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const location = useLocation();
-  const { user, isAuthenticated, openAuthModal, logout } = useAuth();
+  const { user, isAuthenticated, openAuthModal, openLogoutModal } = useAuth();
 
   // Hover handlers for All Courses
   const handleCoursesMouseEnter = () => {
@@ -568,8 +568,8 @@ export const Navbar: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          logout();
                           setUserDropdownOpen(false);
+                          openLogoutModal();
                         }}
                         className="w-full flex items-center justify-between p-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold transition-colors cursor-pointer"
                       >
@@ -640,8 +640,8 @@ export const Navbar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    logout();
                     setMobileMenuOpen(false);
+                    openLogoutModal();
                   }}
                   className="text-rose-500 hover:text-rose-600 text-xs font-semibold flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
                 >

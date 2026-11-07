@@ -6,7 +6,6 @@ import {
   AwardIcon,
   ArrowRightIcon,
   CheckCircleIcon,
-  SparklesIcon,
 } from "../components/common/Icons";
 import { IndiaModule } from "../components/workandstudy/IndiaModule";
 import { AbroadModule } from "../components/workandstudy/AbroadModule";
@@ -150,7 +149,7 @@ export const WorkAndStudy: React.FC = () => {
               <div className="p-6 rounded-3xl bg-slate-900/85 border border-slate-800/90 shadow-2xl backdrop-blur-xl space-y-4 text-white">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <SparklesIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    {/* <SparklesIcon className="w-3.5 h-3.5 text-cyan-400" /> */}
                     Student Financial Autonomy
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">

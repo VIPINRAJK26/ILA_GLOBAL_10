@@ -16,6 +16,7 @@ import { PageEnquiryForm } from '../components/common/PageEnquiryForm';
 import { useStudyAbroadData } from '../services/studyAbroad/hooks/useStudyAbroadData';
 import { StudyAbroadDocModal } from '../components/studyabroad/StudyAbroadDocModal';
 import { UniversityCourseMatcher } from '../components/studyabroad/UniversityCourseMatcher';
+import { Upload } from 'lucide-react';
 
 export const StudyAbroad: React.FC = () => {
   const { data: studyData, isBackendConnected } = useStudyAbroadData();
@@ -115,7 +116,7 @@ export const StudyAbroad: React.FC = () => {
                   onClick={() => setModalMode('upload')}
                   className="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs sm:text-sm backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <SparklesIcon className="w-4 h-4 text-amber-300" />
+                  <Upload className="w-4 h-4 text-amber-300" />
                   <span>{studyData.hero.secondaryCta}</span>
                 </button>
               </div>
@@ -152,10 +153,10 @@ export const StudyAbroad: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
+                  {/* <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
                     <SparklesIcon className="w-4 h-4 text-amber-300" />
                     <span>Free Tuition Pathways</span>
-                  </div>
+                  </div> */}
                   <h3 className="text-xl sm:text-2xl font-bold text-white">
                     Study Top Degree Programs at Zero Tuition Fee
                   </h3>
@@ -336,10 +337,6 @@ export const StudyAbroad: React.FC = () => {
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-purple-600/10 blur-3xl rounded-full pointer-events-none" />
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-8 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30">
-                <SparklesIcon className="w-3.5 h-3.5 text-amber-300" />
-                <span>{studyData.companionBanner.eyebrow}</span>
-              </div>
               <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
                 {studyData.companionBanner.title}
               </h2>
@@ -381,7 +378,7 @@ export const StudyAbroad: React.FC = () => {
             {studyData.privateUniversities.programs.map((prog) => (
               <div
                 key={prog.id}
-                className="group relative rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 sm:p-7 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all flex flex-col justify-between"
+                className="group relative rounded-3xl bg-blue-400/30 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 sm:p-7 shadow-md hover:shadow-xl hover:border-blue-500/40 transition-all flex flex-col justify-between"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -500,7 +497,7 @@ export const StudyAbroad: React.FC = () => {
           {/* Ausbildung Highlights */}
           <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 text-white space-y-6 shadow-xl">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="w-5 h-5 text-amber-400" />
+              {/* <SparklesIcon className="w-5 h-5 text-amber-400" /> */}
               <h3 className="text-base sm:text-lg font-bold">Ausbildung Highlights</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

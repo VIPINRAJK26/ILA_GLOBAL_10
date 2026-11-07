@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router';
 import type { StudentDashboardData } from '../../services/student';
 import {
-  SparklesIcon,
   BookOpenIcon,
   ShieldCheckIcon,
   AwardIcon,
@@ -223,7 +222,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             to="/#intelli-coach"
             className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold text-center shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-2"
           >
-            <SparklesIcon className="w-3.5 h-3.5 text-yellow-300" />
             <span>Launch AI Mock Session</span>
           </Link>
         </div>

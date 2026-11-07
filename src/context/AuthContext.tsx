@@ -41,6 +41,11 @@ interface AuthContextType {
   requestRegistrationOtp: (payload: RegisterRequestOtpPayload) => Promise<{ success: boolean; error?: string; message?: string }>;
   registerStudent: (data: StudentRegistrationData) => Promise<{ success: boolean; error?: string; user?: User; message?: string }>;
   logout: () => Promise<void>;
+  isLogoutModalOpen: boolean;
+  openLogoutModal: () => void;
+  closeLogoutModal: () => void;
+  confirmLogout: () => Promise<void>;
+  requestLogout: () => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
@@ -62,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [authModalDefaultMode, setAuthModalDefaultMode] = useState<'login' | 'register'>('login');
   const [authModalNotice, setAuthModalNotice] = useState<string | null>(null);
 
@@ -314,6 +320,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const closeLogoutModal = () => {
+    setIsLogoutModalOpen(false);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setIsLogoutModalOpen(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -326,6 +348,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearAuthModalNotice,
         openAuthModal,
         closeAuthModal,
+        isLogoutModalOpen,
+        openLogoutModal,
+        closeLogoutModal,
+        confirmLogout,
+        requestLogout: openLogoutModal,
         login,
         loginWithOtp,
         requestLoginOtp,
