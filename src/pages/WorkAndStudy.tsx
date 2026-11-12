@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   BriefcaseIcon,
   GlobeIcon,
@@ -15,6 +15,7 @@ import { PlanCalculator } from "../components/workandstudy/PlanCalculator";
 import { PageEnquiryForm } from "../components/common/PageEnquiryForm";
 
 export const WorkAndStudy: React.FC = () => {
+  const [selectedProgram, setSelectedProgram] = useState("");
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
@@ -251,19 +252,19 @@ export const WorkAndStudy: React.FC = () => {
         </section>
 
         {/* Module One — Work & Study in India */}
-        <IndiaModule />
+        <IndiaModule onSelectProgramme={setSelectedProgram} />
 
         {/* Module Two — Work & Study Abroad */}
-        <AbroadModule />
+        <AbroadModule onSelectProgramme={setSelectedProgram} />
 
         {/* Module Three — German Onboarding Projects */}
-        <GermanProjectsModule />
+        <GermanProjectsModule onSelectProgramme={setSelectedProgram} />
 
         {/* Module Four — Rewards That Support Your Progress */}
         <RewardsModule />
 
         {/* Interactive Work-While-Learn Plan Calculator */}
-        <PlanCalculator />
+        <PlanCalculator onSelectPlan={setSelectedProgram} />
 
         {/* Dedicated Work & Study Student Enquiry Form */}
         <section id="work-study-enquiry" className="pt-6 scroll-mt-24">
@@ -279,7 +280,7 @@ export const WorkAndStudy: React.FC = () => {
               personalized counselor guidance.
             </p>
           </div>
-          <PageEnquiryForm pageType="work-and-study" />
+          <PageEnquiryForm pageType="work-and-study" selectedProgram={selectedProgram || undefined} />
         </section>
       </div>
     </div>

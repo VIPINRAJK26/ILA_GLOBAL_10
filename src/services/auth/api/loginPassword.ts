@@ -16,6 +16,7 @@ export const loginPassword = async (
         identifier: payload.identifier.trim(),
         password: payload.password,
         remember_me: payload.remember_me,
+        role: payload.role,
       }
     );
 

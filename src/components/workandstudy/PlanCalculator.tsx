@@ -11,7 +11,7 @@ import {
   ArrowRightIcon,
 } from '../common/Icons';
 
-export const PlanCalculator: React.FC = () => {
+export const PlanCalculator: React.FC<{ onSelectPlan: (plan: string) => void }> = ({ onSelectPlan }) => {
   const [selectedProgramme, setSelectedProgramme] = useState<CalculatorProgrammeType>(
     CALCULATOR_PROGRAMMES[0]
   );
@@ -22,13 +22,10 @@ export const PlanCalculator: React.FC = () => {
   const planSummary = CALCULATOR_CONFIG[selectedDuration];
 
   const handleEnquirePlan = () => {
+    onSelectPlan(`${selectedProgramme} (${selectedDuration})`);
     const el = document.getElementById('work-study-enquiry');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
-      const select = document.querySelector('select[name="studyField"]') as HTMLSelectElement | null;
-      if (select) {
-        select.value = `${selectedProgramme} (${selectedDuration})`;
-      }
     }
   };
 

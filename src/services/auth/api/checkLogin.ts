@@ -9,21 +9,19 @@ import { normalizeAuthUser } from '../utils/transformers';
 export const checkLogin = async (): Promise<CheckLoginResponse> => {
   try {
     const response = await axiosInstance.get<CheckLoginResponse>('auth/check-login/');
-    const data = response.data;
-    if (data.user) {
-      data.user = normalizeAuthUser(data.user);
+    const data = response.data as CheckLoginResponse & { is_authenticated?: boolean; authenticated?: boolean };
+    const user = data.user ? normalizeAuthUser(data.user) : null;
+    const isAuthenticated = data.isAuthenticated ?? data.is_authenticated ?? data.authenticated ?? Boolean(user);
+    if (user) {
+      data.user = user;
     }
     return {
-      isAuthenticated: Boolean(data.isAuthenticated),
-      user: data.user,
+      isAuthenticated: Boolean(isAuthenticated && user),
+      user,
       message: data.message,
     };
   } catch {
-    return {
-      isAuthenticated: false,
-      user: null,
-      message: 'Failed to check session.',
-    };
+    throw new Error('Unable to verify the current session.');
   }
 };
 

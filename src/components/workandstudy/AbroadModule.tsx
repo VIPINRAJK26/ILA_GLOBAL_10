@@ -8,17 +8,14 @@ import {
   ClockIcon,
 } from '../common/Icons';
 
-export const AbroadModule: React.FC = () => {
+export const AbroadModule: React.FC<{ onSelectProgramme: (programme: string) => void }> = ({ onSelectProgramme }) => {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const handleRegisterInterest = (title: string) => {
+    onSelectProgramme(`Work & Study Abroad: ${title}`);
     const el = document.getElementById('work-study-enquiry');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
-      const select = document.querySelector('select[name="studyField"]') as HTMLSelectElement | null;
-      if (select) {
-        select.value = `Work & Study Abroad: ${title}`;
-      }
     }
   };
 

@@ -39,8 +39,6 @@ export const Dashboard: React.FC = () => {
     toggleActivity,
   } = useStudentDashboard();
 
-  console.log(data,"datasasas")
-
   const handleUpdateProfile = async (updates: Partial<StudentProfile>) => {
     await updateProfile(updates);
   };
@@ -192,11 +190,11 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                  <span>Target: <strong>{profile.destination || 'Germany 🇩🇪'}</strong></span>
+                  <span>Target: <strong>{profile.destination || 'Not set'}</strong></span>
                   <span>•</span>
                   <span>Program: <strong className="text-slate-700 dark:text-slate-300">{profile.targetProgram || 'Academic & Visa Pathway'}</strong></span>
                   <span>•</span>
-                  <span>Current Level: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">CEFR {profile.currentCefrLevel || 'B1'}</strong></span>
+                  <span>Current Level: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">{profile.currentCefrLevel ? `CEFR ${profile.currentCefrLevel}` : 'Not set'}</strong></span>
                 </p>
               </div>
             </div>

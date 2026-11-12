@@ -57,6 +57,7 @@ export const VisaServices: React.FC = () => {
     data: trackedStatus,
     isFetching: isTrackingLoading,
     isError: isTrackingError,
+    refetch: refetchTrackedStatus,
   } = useVisaApplicationStatus(submittedQueryRef, {
     enabled: Boolean(submittedQueryRef),
   });
@@ -445,6 +446,8 @@ export const VisaServices: React.FC = () => {
             >
               <input
                 type="text"
+                required
+                aria-label="Visa application tracking reference"
                 value={trackingReference}
                 onChange={(e) => setTrackingReference(e.target.value)}
                 placeholder="e.g. ILA-VISA-DE-364217"
@@ -485,10 +488,16 @@ export const VisaServices: React.FC = () => {
                   Reference lookup failed
                 </p>
                 <p className="text-[11px] text-rose-300/80">
-                  Could not find active record for "{submittedQueryRef}". Check
-                  your reference code or file a new application.
+                  We couldn't retrieve status for "{submittedQueryRef}". Check the reference and try again.
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => void refetchTrackedStatus()}
+                className="ml-auto rounded-lg border border-rose-400/40 px-3 py-1.5 font-semibold hover:bg-rose-900/40"
+              >
+                Retry
+              </button>
             </div>
           )}
 

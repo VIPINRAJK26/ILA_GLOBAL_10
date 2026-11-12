@@ -21,6 +21,10 @@ const Home: React.FC = () => {
   };
 
   const handleSelectCategory = (categoryId: string) => {
+    if (categoryId === "intelli-coach") {
+      scrollToSection("intelli-coach");
+      return;
+    }
     setSelectedFilter(categoryId);
     scrollToSection("services-overview");
   };
@@ -50,7 +54,7 @@ const Home: React.FC = () => {
       <IlasWithYouSection />
 
       {/* 7. Deep-Dive Spotlight: Rewards & Loyalty Program */}
-      <RewardsSection />
+      <RewardsSection onActivateRewards={() => scrollToSection("fast-enquiry")} />
 
       {/* 8. Trust Metrics & Student Success Stories */}
       <TestimonialsAndTrust />

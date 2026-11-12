@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { submitVisaApplication } from '../api/submitVisaApplication';
 import type { VisaApplicationPayload, VisaApplicationResponse, DRFValidationError } from '../types/types';
 
@@ -8,9 +8,15 @@ import type { VisaApplicationPayload, VisaApplicationResponse, DRFValidationErro
 export const useSubmitVisaApplication = (
   options?: UseMutationOptions<VisaApplicationResponse, DRFValidationError, VisaApplicationPayload>
 ) => {
+  const queryClient = useQueryClient();
+  const callerOnSuccess = options?.onSuccess;
   return useMutation<VisaApplicationResponse, DRFValidationError, VisaApplicationPayload>({
     mutationFn: submitVisaApplication,
     ...options,
+    onSuccess: async (data, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      await callerOnSuccess?.(data, variables, onMutateResult, context);
+    },
   });
 };
 

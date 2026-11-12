@@ -5,9 +5,11 @@ import {
   ArrowRightIcon,
   SparklesIcon
 } from '../common/Icons';
+import { StudyWorkBudgetModal } from './StudyWorkBudgetModal';
 
 export const WorkAndStudySpotlight: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<'germany' | 'canada' | 'uk' | 'ireland'>('germany');
+  const [isBudgetOpen, setIsBudgetOpen] = useState(false);
 
   const countryData = {
     germany: {
@@ -173,6 +175,7 @@ export const WorkAndStudySpotlight: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => setIsBudgetOpen(true)}
                 className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
               >
                 <span>Calculate My Study-Work Budget</span>
@@ -182,6 +185,7 @@ export const WorkAndStudySpotlight: React.FC = () => {
           </div>
         </div>
       </div>
+      {isBudgetOpen && <StudyWorkBudgetModal country={active.name} onClose={() => setIsBudgetOpen(false)} />}
     </section>
   );
 };

@@ -20,6 +20,7 @@ import {
   UserIcon,
   ClockIcon,
 } from "./Icons";
+import { submitHomeEnquiry, submitRewardsClaim } from "../../services/home/homeApi";
 
 export type EnquiryPageType =
   | "visa"
@@ -36,6 +37,8 @@ interface PageEnquiryFormProps {
   title?: string;
   subtitle?: string;
   className?: string;
+  initialJobDomain?: string;
+  selectedProgram?: string;
 }
 
 interface FormState {
@@ -93,6 +96,8 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
   title,
   subtitle,
   className = "",
+  initialJobDomain,
+  selectedProgram,
 }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
   const [isRestored, setIsRestored] = useState(false);
@@ -121,7 +126,7 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     budgetReadiness: "Blocked Account Ready / Arranging",
 
     // Jobs & Careers
-    jobDomain: "Software Engineering & Cloud",
+    jobDomain: initialJobDomain || "Software Engineering & Cloud",
     yearsExperience: "2-4 Years",
     noticePeriod: "1 Month",
     linkedInUrl: "",
@@ -169,9 +174,16 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     }
   }, [pageType, user]);
 
+  useEffect(() => {
+    if (initialJobDomain) {
+      setFormData((prev) => ({ ...prev, jobDomain: initialJobDomain }));
+    }
+  }, [initialJobDomain]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const handleChange = (
@@ -203,7 +215,7 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -219,27 +231,70 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
     }
 
     setIsSubmitting(true);
-
-    // Simulate reliable API submission with contextual ticket generation
-    setTimeout(() => {
-      const prefix =
-        pageType
-          .toUpperCase()
-          .replace(/[^A-Z]/g, "")
-          .slice(0, 4) || "ENQ";
-      const randomNum = Math.floor(100000 + Math.random() * 900000);
-      const generatedTicket = `ILA-${prefix}-${randomNum}`;
-
+    setSubmitError("");
+    try {
+      const submissionPayload = {
+        page_type: pageType,
+        full_name: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        country_code: formData.countryCode,
+        preferred_contact: formData.preferredContact,
+        highest_qualification: formData.highestQualification,
+        current_score: formData.currentScore,
+        study_field: formData.studyField,
+        target_degree: formData.targetDegree,
+        language_proficiency: formData.languageProficiency,
+        target_intake: formData.targetIntake,
+        scholarship_need: formData.scholarshipNeed,
+        budget_readiness: formData.budgetReadiness,
+        message: formData.message,
+        ...(pageType === "rewards" ? {
+          student_member_id: formData.studentMemberId.trim(),
+          milestone_type: formData.milestoneType,
+          claim_category: formData.claimCategory,
+        } : {}),
+        ...(pageType === "jobs-and-careers" ? {
+          job_domain: formData.jobDomain,
+          years_experience: formData.yearsExperience,
+          notice_period: formData.noticePeriod,
+          linked_in_url: formData.linkedInUrl.trim(),
+          target_work_country: formData.targetWorkCountry,
+        } : {}),
+        ...(pageType === "work-and-study" ? {
+          destination_country: formData.destinationCountry,
+          selected_program: selectedProgram || "",
+        } : {}),
+        ...(pageType === "visa" ? {
+          visa_type: formData.visaType,
+          destination_country: formData.destinationCountry,
+          travel_timeline: formData.travelTimeline,
+          prior_refusal_status: formData.hasPriorRefusal,
+        } : {}),
+      };
+      const result = pageType === "rewards"
+        ? await submitRewardsClaim(submissionPayload)
+        : await submitHomeEnquiry(submissionPayload);
+      const reference = result.ticket_id || result.reference_id;
+      if (!reference) throw new Error("The server accepted the request but did not return a tracking reference.");
       clearPendingForm(`enquiry_${pageType}`);
-      setTicketId(generatedTicket);
-      setIsSubmitting(false);
+      setTicketId(reference);
       setIsSubmitted(true);
-    }, 650);
+    } catch (error: any) {
+      const detail = error?.detail || error?.message || error?.error;
+      const validationErrors = error && typeof error === "object" && !detail
+        ? Object.values(error).flat().join(" ")
+        : "";
+      setSubmitError(detail || validationErrors || "We couldn't submit your enquiry. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
     setIsSubmitted(false);
     setTicketId("");
+    setSubmitError("");
     setFormData((prev) => ({
       ...prev,
       message: "",
@@ -427,6 +482,16 @@ export const PageEnquiryForm: React.FC<PageEnquiryFormProps> = ({
         ) : (
           /* Main Interactive Form */
           <form onSubmit={handleSubmit} className="space-y-8">
+            {pageType === "work-and-study" && selectedProgram && (
+              <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-3 text-sm text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-950/30 dark:text-cyan-200">
+                Selected programme: <strong>{selectedProgram}</strong>
+              </div>
+            )}
+            {submitError && (
+              <div role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-300">
+                {submitError}
+              </div>
+            )}
             {/* Restored from local storage indicator */}
             {isRestored && (
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center justify-between">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   GraduationCapIcon, 
   ShieldCheckIcon, 
@@ -181,6 +181,10 @@ export const ServicesOverview: React.FC<ServicesOverviewProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(activeFilter);
   const [activeModalService, setActiveModalService] = useState<ServiceItem | null>(null);
+
+  useEffect(() => {
+    setSelectedCategory(activeFilter);
+  }, [activeFilter]);
 
   const filterTabs = [
     { id: 'all', label: 'All 7 Sections' },

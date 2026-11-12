@@ -140,9 +140,9 @@ const Rewards: React.FC = () => {
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
 
-        {/* Embedded Interactive Rewards Section */}
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none">
-          <RewardsSection />
+        {/* Rewards tiers and milestone estimator */}
+        <div id="rewards-catalog" className="rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none scroll-mt-24">
+          <RewardsSection onActivateRewards={() => document.getElementById("rewards-enquiry")?.scrollIntoView({ behavior: "smooth", block: "start" })} />
         </div>
 
         {/* Dedicated Rewards & Milestone Grant Claim Form */}

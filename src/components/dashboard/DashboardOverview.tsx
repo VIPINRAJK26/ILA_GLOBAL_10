@@ -48,7 +48,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               {enrolledCourses.filter((c) => c.status === 'active').length}
             </span>
             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              {activeCourse?.level || 'B1'} Target
+              {activeCourse?.level ? `${activeCourse.level} Target` : 'No course'}
             </span>
           </div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -71,14 +71,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-              {activeCourse?.attendancePercent || 94}%
+              {activeCourse ? `${activeCourse.attendancePercent}%` : '—'}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
               High
             </span>
           </div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {activeCourse?.attendedClasses || 25} of {activeCourse?.totalClasses || 36} attended
+            {activeCourse ? `${activeCourse.attendedClasses} of ${activeCourse.totalClasses} attended` : 'No attendance data'}
           </div>
         </div>
 
@@ -97,14 +97,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white capitalize truncate">
-              {primaryApplication?.status === 'under_review' ? 'In Review' : 'Active'}
+              {primaryApplication ? (primaryApplication.status === 'under_review' ? 'In Review' : primaryApplication.statusLabel) : 'No application'}
             </span>
             <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-              Step 3/5
+              {primaryApplication ? `${primaryApplication.steps.filter((step) => step.status === 'completed').length}/${primaryApplication.steps.length} steps` : '—'}
             </span>
           </div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">
-            {primaryApplication?.country} {primaryApplication?.flag} • VFS Docket
+            {primaryApplication ? `${primaryApplication.country} ${primaryApplication.flag} • ${primaryApplication.referenceNumber}` : 'No application records'}
           </div>
         </div>
 

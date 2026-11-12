@@ -13,6 +13,7 @@ import {
   type RegisterRequestOtpPayload, 
   type RegisterVerifyOtpPayload 
 } from '../services/auth';
+import { clearAuthTokens, getRefreshToken, storeAuthTokens } from '../services/auth/tokenStorage';
 
 export type { UserRole };
 export type User = AuthUser;
@@ -74,16 +75,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Verify real session on mount with DRF backend check-login
   useEffect(() => {
     let isMounted = true;
+    const clearExpiredSession = () => {
+      setUser(null);
+      localStorage.removeItem(STORAGE_KEY);
+      clearAuthTokens();
+    };
+    window.addEventListener('ila:auth-expired', clearExpiredSession);
+
     checkLogin()
       .then((res) => {
         if (!isMounted) return;
         if (res.isAuthenticated && res.user) {
           setUser(res.user);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(res.user));
+        } else {
+          clearExpiredSession();
         }
       })
       .catch(() => {
-        // Leave local state intact if network offline
+        // Keep a cached identity during a network outage; any 401 response
+        // dispatches ila:auth-expired and clears this state immediately.
       })
       .finally(() => {
         if (isMounted) setIsLoadingSession(false);
@@ -91,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       isMounted = false;
+      window.removeEventListener('ila:auth-expired', clearExpiredSession);
     };
   }, []);
 
@@ -163,9 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.user) {
-        if (response.access) {
-          localStorage.setItem('ila_auth_access_token', response.access);
-        }
+        storeAuthTokens({ access: response.access, refresh: response.refresh });
         setUser(response.user);
         closeAuthModal();
         return { success: true, user: response.user };
@@ -203,9 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.user) {
-        if (response.access) {
-          localStorage.setItem('ila_auth_access_token', response.access);
-        }
+        storeAuthTokens({ access: response.access, refresh: response.refresh });
         setUser(response.user);
         closeAuthModal();
         return { success: true, user: response.user };
@@ -309,14 +317,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const refreshToken = getRefreshToken();
+    // Update navigation immediately and revoke locally stored credentials even
+    // if the backend is unavailable. The refresh value is captured for blacklist.
+    setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
+    clearAuthTokens();
     try {
-      await apiLogout();
-    } catch {
-      // Ignore
-    } finally {
-      setUser(null);
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem('ila_auth_access_token');
+      await apiLogout(refreshToken || undefined);
+    } catch (err) {
+      console.warn('Backend logout/revocation failed; local session was cleared.', err);
     }
   };
 

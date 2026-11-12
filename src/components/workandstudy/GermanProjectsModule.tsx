@@ -8,15 +8,12 @@ import {
   SparklesIcon,
 } from '../common/Icons';
 
-export const GermanProjectsModule: React.FC = () => {
+export const GermanProjectsModule: React.FC<{ onSelectProgramme: (programme: string) => void }> = ({ onSelectProgramme }) => {
   const handleApplyProject = (projectName: string) => {
+    onSelectProgramme(`German Project: ${projectName}`);
     const el = document.getElementById('work-study-enquiry');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
-      const select = document.querySelector('select[name="studyField"]') as HTMLSelectElement | null;
-      if (select) {
-        select.value = `German Project: ${projectName}`;
-      }
     }
   };
 
