@@ -10,12 +10,14 @@ import {
   SendIcon,
   AwardIcon
 } from '../common/Icons';
+import { requestIntelliCoach } from '../../services/home/homeApi';
 
 export const IntelliCoachSection: React.FC = () => {
   const [selectedPromptIndex, setSelectedPromptIndex] = useState(0);
   const [customInput, setCustomInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [customResponse, setCustomResponse] = useState<string | null>(null);
+  const [coachError, setCoachError] = useState<string | null>(null);
 
   const samplePrompts = [
     {
@@ -75,19 +77,41 @@ export const IntelliCoachSection: React.FC = () => {
   const handlePromptClick = (index: number) => {
     setSelectedPromptIndex(index);
     setCustomResponse(null);
+    setCoachError(null);
+  };
+
+  const runCoachRequest = async (prompt: string, action: 'query' | 'document_checklist', category: string) => {
+    setCoachError(null);
+    setCustomResponse(null);
+    setIsTyping(true);
+    try {
+      const result = await requestIntelliCoach({ action, prompt, category });
+      if (!result?.success) throw new Error(result?.message || 'Intelli Coach could not complete this request.');
+      const output = action === 'document_checklist'
+        ? (result.checklist?.length ? result.checklist.map((item) => `☐ ${item}`).join('\n') : result.response)
+        : result.response;
+      if (!output) throw new Error('The server returned an empty response.');
+      setCustomResponse(output);
+    } catch (error: any) {
+      setCoachError(error?.detail || error?.message || error?.error || 'Intelli Coach is unavailable. Please try again.');
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customInput.trim()) return;
+    void runCoachRequest(customInput.trim(), 'query', 'general');
+  };
 
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      setCustomResponse(
-        `Intelli Coach Assessment for: "${customInput}"\n\nBased on global visa regulations and university standards, our AI engine has analyzed your query. We recommend shortlisting programs aligned with your background, keeping language test scores at or above CEFR B2, and locking in pre-admission documentation at least 4 months prior to intake. Connect with an ILA advisor for human verification!`
-      );
-    }, 800);
+  const handleAnswerAction = () => {
+    const prompt = samplePrompts[selectedPromptIndex];
+    void runCoachRequest(
+      prompt.question,
+      selectedPromptIndex === 0 ? 'document_checklist' : 'query',
+      prompt.category,
+    );
   };
 
   const currentAnswer = samplePrompts[selectedPromptIndex].answer;
@@ -232,7 +256,7 @@ export const IntelliCoachSection: React.FC = () => {
                     <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                       Intelli Coach Intelligence Engine
                       <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] rounded font-medium">
-                        Live Response
+                        {customResponse ? 'Backend Response' : 'Sample Preview'}
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">Context: Global Immigration & Academic Laws</div>
@@ -262,9 +286,9 @@ export const IntelliCoachSection: React.FC = () => {
                     <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-indigo-900 dark:text-indigo-200 text-xs sm:text-sm font-semibold">
                       Custom AI Evaluation
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                    <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
                       {customResponse}
-                    </p>
+                    </div>
                     <div className="pt-3">
                       <button
                         type="button"
@@ -306,12 +330,19 @@ export const IntelliCoachSection: React.FC = () => {
 
                       <button
                         type="button"
+                        onClick={handleAnswerAction}
+                        disabled={isTyping}
                         className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer shadow-sm"
                       >
                         {currentAnswer.actionLabel} →
                       </button>
                     </div>
                   </div>
+                )}
+                {coachError && !isTyping && (
+                  <p role="alert" className="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-300">
+                    {coachError}
+                  </p>
                 )}
               </div>
             </div>

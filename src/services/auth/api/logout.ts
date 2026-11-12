@@ -10,10 +10,10 @@ export const logout = async (refreshToken?: string): Promise<{ success: boolean;
       'auth/logout/',
       refreshToken ? { refresh: refreshToken } : {}
     );
-    return { success: true, message: response.data.message };
-  } catch {
-    // Even if backend fails, client clears local session
-    return { success: true, message: 'Logged out locally.' };
+    return { success: true, message: response.data?.message };
+  } catch (error: any) {
+    if (error.response?.data) throw error.response.data;
+    throw error;
   }
 };
 

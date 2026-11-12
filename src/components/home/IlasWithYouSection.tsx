@@ -116,6 +116,7 @@ export const IlasWithYouSection: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => document.getElementById('fast-enquiry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             className="w-full md:w-auto px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors cursor-pointer shadow-md"
           >
             Connect with My City Buddy →

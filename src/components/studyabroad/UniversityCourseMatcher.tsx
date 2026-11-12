@@ -9,6 +9,10 @@ import {
   ArrowRightIcon,
   CheckCircleIcon
 } from '../common/Icons';
+import {
+  submitCourseMatcherRequest,
+  type CourseMatcherResponse,
+} from '../../services/studyAbroad/api/studyAbroadApi';
 
 interface UniversityCourseMatcherProps {
   onApplyForCounselling: (details?: {
@@ -58,6 +62,8 @@ export const UniversityCourseMatcher: React.FC<UniversityCourseMatcherProps> = (
   const [fileError, setFileError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [matcherResponse, setMatcherResponse] = useState<CourseMatcherResponse | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,18 +110,37 @@ export const UniversityCourseMatcher: React.FC<UniversityCourseMatcherProps> = (
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     setIsSearching(true);
-    // Simulate query execution to provide immediate feedback
-    setTimeout(() => {
-      setIsSearching(false);
+    try {
+      const result = await submitCourseMatcherRequest({
+        country: selectedCountry,
+        qualification: selectedQualification,
+        field: selectedField,
+        transcript: transcriptFile,
+      });
+      if (!result?.success) {
+        throw new Error(result?.message || 'The course matching request was not accepted.');
+      }
+      setMatcherResponse({ ...result, matches: Array.isArray(result.matches) ? result.matches : [] });
       setHasSearched(true);
-    }, 450);
+    } catch (error: any) {
+      const detail = error?.message || error?.detail || error?.error;
+      const validationErrors = error && typeof error === 'object' && !detail
+        ? Object.values(error).flat().join(' ')
+        : null;
+      setSubmitError(detail || validationErrors || 'Could not submit your course matching request. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleResetSearch = () => {
     setHasSearched(false);
+    setMatcherResponse(null);
+    setSubmitError(null);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -287,6 +312,13 @@ export const UniversityCourseMatcher: React.FC<UniversityCourseMatcherProps> = (
               )}
             </div>
 
+            {submitError && (
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-300">
+                <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+
             {/* Submission Action */}
             <div className="pt-2 flex flex-wrap items-center justify-between gap-4">
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-lg">
@@ -313,21 +345,42 @@ export const UniversityCourseMatcher: React.FC<UniversityCourseMatcherProps> = (
             </div>
           </form>
         ) : (
-          /* Submission Result: Honest Enquiry / Integration-Pending State */
+          /* Backend course matcher response */
           <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
+            <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200">
               <div className="flex items-start gap-3">
-                <ClockIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                {matcherResponse?.matches?.length ? (
+                  <CheckCircleIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <ClockIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                )}
                 <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                    Direct Course Matcher Integration in Progress
+                  <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                    {matcherResponse?.matches?.length ? 'Course Matches' : 'Request Submitted'}
                   </h3>
-                  <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300 leading-relaxed">
-                    Live programmatic university query endpoints are currently being integrated. In accordance with admissions compliance, university matches and eligibility verification require certified advisor review rather than unverified automated estimations.
+                  <p className="text-xs sm:text-sm text-emerald-800/90 dark:text-emerald-300 leading-relaxed">
+                    {matcherResponse?.message}
                   </p>
+                  {matcherResponse?.trackingId && (
+                    <p className="pt-1 text-xs">Reference: <strong className="font-mono">{matcherResponse.trackingId}</strong></p>
+                  )}
                 </div>
               </div>
             </div>
+
+            {!!matcherResponse?.matches?.length && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {matcherResponse.matches.map((match) => (
+                  <article key={match.id} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white">{match.university}</h3>
+                    <p className="mt-1 text-sm font-medium text-purple-700 dark:text-purple-300">{match.program}</p>
+                    {match.location && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{match.location}</p>}
+                    {match.description && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{match.description}</p>}
+                    {match.url && <a href={match.url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold text-purple-700 hover:underline dark:text-purple-300">View program</a>}
+                  </article>
+                ))}
+              </div>
+            )}
 
             {/* Captured Profile Parameters */}
             <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">

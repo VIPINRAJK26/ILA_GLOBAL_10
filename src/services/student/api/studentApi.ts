@@ -14,7 +14,6 @@ import {
   getStudentDashboardData,
   saveStudentDashboardData,
   updateStudentProfileData,
-  addStudentDocumentRecord,
   deleteStudentDocumentRecord,
   toggleActivityItemStatus,
 } from '../studentStorage';
@@ -29,6 +28,7 @@ export const STUDENT_ENDPOINTS = {
   COURSES: 'student/courses/',
   ENROLLMENTS: 'enrollments/',
   APPLICATIONS: 'student/applications/',
+  VISA_APPLICATIONS: 'visas/applications/',
   DOCUMENTS: 'student/documents/',
   DOCUMENT_DETAIL: (id: string | number) => `student/documents/${id}/`,
   ACTIVITIES: 'student/activities/',
@@ -166,7 +166,12 @@ function normalizeCourse(item: any, index: number): EnrolledCourse {
 }
 
 function normalizeApplication(item: any, index: number): ApplicationTrack {
+  const isVisaApplication = Boolean(
+    item.application_reference || item.visa_type_name || item.country_name || item.visa_official_code
+  );
+  const visaStatus = item.status === 'received' ? 'submitted' : item.status;
   const title =
+    (isVisaApplication && [item.visa_type_name, item.country_name].filter(Boolean).join(' • ')) ||
     item.title ||
     item.course_title ||
     item.course_details?.title ||
@@ -175,23 +180,25 @@ function normalizeApplication(item: any, index: number): ApplicationTrack {
 
   return {
     id: String(item.id || item.enrollment_id || `app-${index}`),
-    type: item.type || (item.enrollment_id ? 'course_enrollment' : 'visa'),
+    type: isVisaApplication ? 'visa' : item.type || (item.enrollment_id ? 'course_enrollment' : 'visa'),
     title: item.enrollment_id ? `${title} (${pathTitle})` : title,
-    country: item.country || (item.flag ? 'International' : 'Germany'),
-    flag: item.flag || item.course_flag || '🇩🇪',
+    country: item.country_name || item.country || (item.flag ? 'International' : ''),
+    flag: item.country_flag || item.flag || item.course_flag || '',
     referenceNumber:
+      item.application_reference ||
       item.reference_number ||
       item.referenceNumber ||
       item.enrollment_id ||
       item.reference ||
       `ILA-APP-${index + 100}`,
     submittedDate: item.submitted_date || item.submittedDate || (item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent'),
-    status: item.status === 'confirmed' ? 'approved' : item.status || 'submitted',
+    status: item.status === 'confirmed' ? 'approved' : visaStatus || 'submitted',
     statusLabel:
+      item.status_display ||
       item.status_label ||
       item.statusLabel ||
       (item.status === 'confirmed' ? 'Seat Confirmed' : 'Processing'),
-    consularDesk: item.consular_desk || item.consularDesk || 'ILA Global Academic Admissions Desk',
+    consularDesk: item.consular_desk || item.consularDesk || (isVisaApplication ? 'Consular Desk' : 'ILA Global Academic Admissions Desk'),
     officerNotes:
       item.officer_notes ||
       item.officerNotes ||
@@ -258,6 +265,16 @@ export const getConsolidatedStudentDashboard = async (): Promise<any | null> => 
   }
 };
 
+/** Fetch visa applications created by POST /api/visas/applications/. */
+export const getVisaApplications = async (): Promise<ApplicationTrack[]> => {
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.VISA_APPLICATIONS);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) {
+    throw new Error('Visa applications endpoint returned an unsupported response shape.');
+  }
+  return raw.map(normalizeApplication);
+};
+
 /**
  * Fetch Dedicated Student Dossier Profile:
  * Endpoint: GET /api/student/profile/
@@ -292,13 +309,10 @@ export const updateStudentDossierProfile = async (
  * Endpoint: GET /api/student/courses/
  */
 export const getStudentCourses = async (): Promise<EnrolledCourse[]> => {
-  try {
-    const response = await axiosInstance.get(STUDENT_ENDPOINTS.COURSES);
-    const raw = Array.isArray(response.data) ? response.data : response.data?.results || [];
-    return raw.map(normalizeCourse);
-  } catch {
-    return [];
-  }
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.COURSES);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) throw new Error('Student courses endpoint returned an unsupported response shape.');
+  return raw.map(normalizeCourse);
 };
 
 /**
@@ -306,16 +320,11 @@ export const getStudentCourses = async (): Promise<EnrolledCourse[]> => {
  * Endpoint: GET /api/enrollments/
  */
 export const getStudentEnrollments = async (userEmail?: string): Promise<any[]> => {
-  try {
-    const response = await axiosInstance.get(STUDENT_ENDPOINTS.ENROLLMENTS);
-    const raw = Array.isArray(response.data) ? response.data : response.data?.results || [];
-    if (!userEmail) return raw;
-    return raw.filter(
-      (e: any) => e.applicant_email?.toLowerCase() === userEmail.toLowerCase()
-    );
-  } catch {
-    return [];
-  }
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.ENROLLMENTS);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) throw new Error('Enrollments endpoint returned an unsupported response shape.');
+  void userEmail;
+  return raw;
 };
 
 /**
@@ -323,13 +332,10 @@ export const getStudentEnrollments = async (userEmail?: string): Promise<any[]> 
  * Endpoint: GET /api/student/applications/
  */
 export const getStudentApplications = async (): Promise<ApplicationTrack[]> => {
-  try {
-    const response = await axiosInstance.get(STUDENT_ENDPOINTS.APPLICATIONS);
-    const raw = Array.isArray(response.data) ? response.data : response.data?.results || [];
-    return raw.map(normalizeApplication);
-  } catch {
-    return [];
-  }
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.APPLICATIONS);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) throw new Error('Student applications endpoint returned an unsupported response shape.');
+  return raw.map(normalizeApplication);
 };
 
 /**
@@ -337,13 +343,10 @@ export const getStudentApplications = async (): Promise<ApplicationTrack[]> => {
  * Endpoint: GET /api/student/documents/
  */
 export const getStudentDocuments = async (): Promise<StudentDocument[]> => {
-  try {
-    const response = await axiosInstance.get(STUDENT_ENDPOINTS.DOCUMENTS);
-    const raw = Array.isArray(response.data) ? response.data : response.data?.results || [];
-    return raw.map(normalizeDocument);
-  } catch {
-    return [];
-  }
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.DOCUMENTS);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) throw new Error('Student documents endpoint returned an unsupported response shape.');
+  return raw.map(normalizeDocument);
 };
 
 /**
@@ -393,13 +396,10 @@ export const deleteStudentDocumentApi = async (docId: string | number): Promise<
  * Endpoint: GET /api/student/activities/
  */
 export const getStudentActivities = async (): Promise<StudentActivityItem[]> => {
-  try {
-    const response = await axiosInstance.get(STUDENT_ENDPOINTS.ACTIVITIES);
-    const raw = Array.isArray(response.data) ? response.data : response.data?.results || [];
-    return raw.map(normalizeActivity);
-  } catch {
-    return [];
-  }
+  const response = await axiosInstance.get(STUDENT_ENDPOINTS.ACTIVITIES);
+  const raw = Array.isArray(response.data) ? response.data : response.data?.results;
+  if (!Array.isArray(raw)) throw new Error('Student activities endpoint returned an unsupported response shape.');
+  return raw.map(normalizeActivity);
 };
 
 /**
@@ -425,6 +425,11 @@ export const fetchStudentDashboardData = async (
   currentUser?: AuthUser | null
 ): Promise<StudentDashboardData> => {
   const fallback = getStudentDashboardData(currentUser);
+  const visaAppsResult = await getVisaApplications().then(
+    (value) => ({ status: 'fulfilled' as const, value }),
+    (reason) => ({ status: 'rejected' as const, reason })
+  );
+  const visaApplications = visaAppsResult.status === 'fulfilled' ? visaAppsResult.value : [];
 
   // Strategy 1: Check Consolidated Dashboard endpoint
   const consolidated = await getConsolidatedStudentDashboard();
@@ -440,8 +445,10 @@ export const fetchStudentDashboardData = async (
       : fallback.enrolledCourses;
 
     const applications = Array.isArray(consolidated.applications)
-      ? consolidated.applications.map(normalizeApplication)
-      : fallback.applications;
+      ? [...visaApplications, ...consolidated.applications.map(normalizeApplication)].filter((app, index, all) =>
+          all.findIndex((candidate) => candidate.referenceNumber === app.referenceNumber) === index
+        )
+      : visaApplications.length > 0 ? visaApplications : fallback.applications;
 
     const documents = Array.isArray(consolidated.documents)
       ? consolidated.documents.map(normalizeDocument)
@@ -471,16 +478,18 @@ export const fetchStudentDashboardData = async (
     coursesRes,
     enrollmentsRes,
     appsRes,
+    visaAppsRes,
     docsRes,
     actsRes,
   ] = await Promise.allSettled([
     getUserProfile().catch(() => null),
     getStudentDossierProfile().catch(() => null),
-    getStudentCourses().catch(() => []),
-    getStudentEnrollments(currentUser?.email).catch(() => []),
-    getStudentApplications().catch(() => []),
-    getStudentDocuments().catch(() => []),
-    getStudentActivities().catch(() => []),
+    getStudentCourses(),
+    getStudentEnrollments(currentUser?.email),
+    getStudentApplications(),
+    getVisaApplications(),
+    getStudentDocuments(),
+    getStudentActivities(),
   ]);
 
   const authUser = authProfileRes.status === 'fulfilled' ? authProfileRes.value : currentUser;
@@ -493,38 +502,28 @@ export const fetchStudentDashboardData = async (
   const directCourses = coursesRes.status === 'fulfilled' ? coursesRes.value : [];
   const enrollments = enrollmentsRes.status === 'fulfilled' ? enrollmentsRes.value : [];
 
-  if (directCourses.length > 0) {
+  if (coursesRes.status === 'fulfilled') {
     enrolledCourses = directCourses;
-  } else if (enrollments.length > 0) {
-    const mapped = enrollments.map((e, idx) => normalizeCourse(e, idx));
-    const existingIds = new Set(mapped.map((m: EnrolledCourse) => m.id));
-    const nonDupes = fallback.enrolledCourses.filter((c) => !existingIds.has(c.id));
-    enrolledCourses = [...mapped, ...nonDupes];
+  } else if (enrollmentsRes.status === 'fulfilled') {
+    enrolledCourses = enrollments.map((e, idx) => normalizeCourse(e, idx));
   }
 
   // Applications: prefer /api/student/applications/, enrich with /api/enrollments/
   let applications: ApplicationTrack[] = fallback.applications;
   const directApps = appsRes.status === 'fulfilled' ? appsRes.value : [];
-  if (directApps.length > 0) {
-    applications = directApps;
-  } else if (enrollments.length > 0) {
-    const mappedApps = enrollments.map((e, idx) => normalizeApplication(e, idx));
-    const existingRefs = new Set(mappedApps.map((a: ApplicationTrack) => a.referenceNumber));
-    const nonDupes = fallback.applications.filter((a) => !existingRefs.has(a.referenceNumber));
-    applications = [...mappedApps, ...nonDupes];
+  const visaApps = visaAppsRes.status === 'fulfilled' ? visaAppsRes.value : visaApplications;
+  if (appsRes.status === 'fulfilled' || visaAppsRes.status === 'fulfilled') {
+    const merged = [...visaApps, ...directApps];
+    applications = merged.filter((app, index, all) =>
+      all.findIndex((candidate) => candidate.referenceNumber === app.referenceNumber) === index
+    );
   }
 
   // Documents: from /api/student/documents/
-  const documents =
-    docsRes.status === 'fulfilled' && docsRes.value.length > 0
-      ? docsRes.value
-      : fallback.documents;
+  const documents = docsRes.status === 'fulfilled' ? docsRes.value : fallback.documents;
 
   // Activities: from /api/student/activities/
-  const activities =
-    actsRes.status === 'fulfilled' && actsRes.value.length > 0
-      ? actsRes.value
-      : fallback.activities;
+  const activities = actsRes.status === 'fulfilled' ? actsRes.value : fallback.activities;
 
   const completeData: StudentDashboardData = {
     profile,
@@ -568,10 +567,13 @@ export const updateStudentProfileBackend = async (
   if (updates.currentCefrLevel !== undefined) dossierPayload.current_cefr_level = updates.currentCefrLevel;
   if (updates.targetCefrLevel !== undefined) dossierPayload.target_cefr_level = updates.targetCefrLevel;
 
-  await Promise.allSettled([
-    Object.keys(authPayload).length > 0 ? updateUserProfile(authPayload).catch(() => null) : null,
-    Object.keys(dossierPayload).length > 0 ? updateStudentDossierProfile(dossierPayload).catch(() => null) : null,
-  ]);
+  const writes = [
+    Object.keys(authPayload).length > 0 ? updateUserProfile(authPayload) : Promise.resolve(null),
+    Object.keys(dossierPayload).length > 0 ? updateStudentDossierProfile(dossierPayload) : Promise.resolve(null),
+  ];
+  const results = await Promise.allSettled(writes);
+  const failedWrite = results.find((result) => result.status === 'rejected');
+  if (failedWrite?.status === 'rejected') throw failedWrite.reason;
 
   // Sync to local state
   return updateStudentProfileData(updates, user);
@@ -590,31 +592,19 @@ export const uploadStudentDocumentBackend = async (
   user?: AuthUser | null
 ): Promise<StudentDashboardData> => {
   if (doc.file) {
-    try {
-      const uploadedDoc = await uploadStudentDocumentApi({
-        name: doc.name,
-        category: doc.category,
-        file: doc.file,
-      });
-
-      const current = getStudentDashboardData(user);
-      current.documents.unshift(uploadedDoc);
-      saveStudentDashboardData(current);
-      return current;
-    } catch (err) {
-      console.warn('Backend document upload warning, saving snapshot locally:', err);
-    }
-  }
-
-  return addStudentDocumentRecord(
-    {
+    const uploadedDoc = await uploadStudentDocumentApi({
       name: doc.name,
       category: doc.category,
-      fileName: doc.fileName || doc.file?.name || `${doc.name.replace(/\s+/g, '_')}.pdf`,
-      fileSize: doc.file ? `${(doc.file.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB',
-    },
-    user
-  );
+      file: doc.file,
+    });
+
+    const current = getStudentDashboardData(user);
+    current.documents.unshift(uploadedDoc);
+    saveStudentDashboardData(current);
+    return current;
+  }
+
+  throw new Error('A file is required to upload a document to your account.');
 };
 
 /**
@@ -624,11 +614,7 @@ export const deleteStudentDocumentBackend = async (
   docId: string,
   user?: AuthUser | null
 ): Promise<StudentDashboardData> => {
-  try {
-    await deleteStudentDocumentApi(docId);
-  } catch (err) {
-    console.warn(`Backend delete document ${docId} warning, updating snapshot locally:`, err);
-  }
+  await deleteStudentDocumentApi(docId);
 
   return deleteStudentDocumentRecord(docId, user);
 };
@@ -640,11 +626,7 @@ export const toggleActivityBackend = async (
   activityId: string,
   user?: AuthUser | null
 ): Promise<StudentDashboardData> => {
-  try {
-    await toggleStudentActivityApi(activityId);
-  } catch (err) {
-    console.warn(`Activity toggle ${activityId} offline fallback:`, err);
-  }
+  await toggleStudentActivityApi(activityId);
 
   return toggleActivityItemStatus(activityId, user);
 };

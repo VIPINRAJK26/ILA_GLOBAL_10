@@ -1,5 +1,4 @@
-import React from "react";
-import { Link } from "react-router";
+import React, { useState } from "react";
 import {
   BriefcaseIcon,
   BotIcon,
@@ -11,6 +10,12 @@ import {
 import { PageEnquiryForm } from "../components/common/PageEnquiryForm";
 
 const JobsAndCareers: React.FC = () => {
+  const [selectedJobRole, setSelectedJobRole] = useState("");
+  const goToCareerEnquiry = (role?: string) => {
+    if (role) setSelectedJobRole(role);
+    document.getElementById("jobs-enquiry")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const jobRoles = [
     {
       title: "Software Engineering & Cloud",
@@ -83,19 +88,19 @@ const JobsAndCareers: React.FC = () => {
               </p>
 
               <div className="pt-2 flex flex-wrap gap-3.5">
-                <Link
-                  to="/#intelli-coach"
+                <button
+                  type="button"
+                  onClick={() => goToCareerEnquiry()}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 cursor-pointer hover:scale-102 active:scale-98 transition-all"
                 >
                   <BotIcon className="w-4 h-4" />
-                  <span>Optimize Resume with ATS AI</span>
-                </Link>
+                  <span>Get Resume & Career Guidance</span>
+                </button>
 
                 <button
                   type="button"
                   onClick={() => {
-                    const el = document.getElementById("careers-enquiry");
-                    el?.scrollIntoView({ behavior: "smooth" });
+                    goToCareerEnquiry();
                   }}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-200 text-xs sm:text-sm font-semibold backdrop-blur-md transition-colors cursor-pointer"
                 >
@@ -200,12 +205,13 @@ const JobsAndCareers: React.FC = () => {
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   Europass & ATS Format Supported
                 </span>
-                <Link
-                  to="/#intelli-coach"
+                <button
+                  type="button"
+                  onClick={() => goToCareerEnquiry(role.title)}
                   className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline"
                 >
-                  Match Openings →
-                </Link>
+                  Apply for this role →
+                </button>
               </div>
             </div>
           ))}
@@ -213,7 +219,7 @@ const JobsAndCareers: React.FC = () => {
 
         {/* Dedicated Jobs & Career Sponsorship Enquiry Form */}
         <div id="jobs-enquiry" className="pt-4">
-          <PageEnquiryForm pageType="jobs-and-careers" />
+          <PageEnquiryForm pageType="jobs-and-careers" initialJobDomain={selectedJobRole || undefined} />
         </div>
       </div>
     </div>

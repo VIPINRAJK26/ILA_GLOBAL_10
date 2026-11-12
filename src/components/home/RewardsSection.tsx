@@ -7,7 +7,11 @@ import {
   ArrowRightIcon 
 } from '../common/Icons';
 
-export const RewardsSection: React.FC = () => {
+interface RewardsSectionProps {
+  onActivateRewards: () => void;
+}
+
+export const RewardsSection: React.FC<RewardsSectionProps> = ({ onActivateRewards }) => {
   const [selectedMilestone, setSelectedMilestone] = useState<number>(3);
 
   const tiers = [
@@ -136,6 +140,7 @@ export const RewardsSection: React.FC = () => {
 
               <button
                 type="button"
+                onClick={onActivateRewards}
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 cursor-pointer"
               >
                 <span>Activate Rewards Account</span>

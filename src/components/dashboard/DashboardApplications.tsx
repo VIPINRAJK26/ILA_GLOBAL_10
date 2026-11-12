@@ -38,6 +38,11 @@ export const DashboardApplications: React.FC<DashboardApplicationsProps> = ({ ap
       </div>
 
       {/* Main Grid: Application Selector & Detailed Stepper View */}
+      {applications.length === 0 ? (
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          No applications are linked to this account yet. Refresh after submitting an application.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Application Cards */}
         <div className="lg:col-span-5 space-y-3">
@@ -212,6 +217,7 @@ export const DashboardApplications: React.FC<DashboardApplicationsProps> = ({ ap
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

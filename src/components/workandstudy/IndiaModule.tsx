@@ -11,7 +11,7 @@ import {
   AwardIcon,
 } from '../common/Icons';
 
-export const IndiaModule: React.FC = () => {
+export const IndiaModule: React.FC<{ onSelectProgramme: (programme: string) => void }> = ({ onSelectProgramme }) => {
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
 
   const toggleAccordion = (id: string) => {
@@ -33,14 +33,10 @@ export const IndiaModule: React.FC = () => {
   };
 
   const handleApplyClick = (programmeName: string) => {
+    onSelectProgramme(programmeName);
     const el = document.getElementById('work-study-enquiry');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
-      // Suggest program in studyField or targetDegree if applicable
-      const select = document.querySelector('select[name="studyField"]') as HTMLSelectElement | null;
-      if (select) {
-        select.value = programmeName;
-      }
     }
   };
 
