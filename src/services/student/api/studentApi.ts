@@ -592,20 +592,16 @@ export const uploadStudentDocumentBackend = async (
   user?: AuthUser | null
 ): Promise<StudentDashboardData> => {
   if (doc.file) {
-    try {
-      const uploadedDoc = await uploadStudentDocumentApi({
-        name: doc.name,
-        category: doc.category,
-        file: doc.file,
-      });
+    const uploadedDoc = await uploadStudentDocumentApi({
+      name: doc.name,
+      category: doc.category,
+      file: doc.file,
+    });
 
-      const current = getStudentDashboardData(user);
-      current.documents.unshift(uploadedDoc);
-      saveStudentDashboardData(current);
-      return current;
-    } catch (err) {
-      throw err;
-    }
+    const current = getStudentDashboardData(user);
+    current.documents.unshift(uploadedDoc);
+    saveStudentDashboardData(current);
+    return current;
   }
 
   throw new Error('A file is required to upload a document to your account.');
